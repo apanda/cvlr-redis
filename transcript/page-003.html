@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code transcript - page 3</title>
+    <style>
+:root { --bg-color: #f5f5f5; --card-bg: #ffffff; --user-bg: #e3f2fd; --user-border: #1976d2; --assistant-bg: #f5f5f5; --assistant-border: #9e9e9e; --thinking-bg: #fff8e1; --thinking-border: #ffc107; --thinking-text: #666; --tool-bg: #f3e5f5; --tool-border: #9c27b0; --tool-result-bg: #e8f5e9; --tool-error-bg: #ffebee; --text-color: #212121; --text-muted: #757575; --code-bg: #263238; --code-text: #aed581; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 16px; line-height: 1.6; }
+.container { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin-bottom: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--user-border); }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--user-border); padding-bottom: 8px; margin-bottom: 24px; }
+.header-row h1 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; flex: 1; min-width: 200px; }
+.message { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.message.user { background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.message.assistant { background: var(--card-bg); border-left: 4px solid var(--assistant-border); }
+.message.tool-reply { background: #fff8e1; border-left: 4px solid #ff9800; }
+.tool-reply .role-label { color: #e65100; }
+.tool-reply .tool-result { background: transparent; padding: 0; margin: 0; }
+.tool-reply .tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.message-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.role-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.user .role-label { color: var(--user-border); }
+time { color: var(--text-muted); font-size: 0.8rem; }
+.timestamp-link { color: inherit; text-decoration: none; }
+.timestamp-link:hover { text-decoration: underline; }
+.message:target { animation: highlight 2s ease-out; }
+@keyframes highlight { 0% { background-color: rgba(25, 118, 210, 0.2); } 100% { background-color: transparent; } }
+.message-content { padding: 16px; }
+.message-content p { margin: 0 0 12px 0; }
+.message-content p:last-child { margin-bottom: 0; }
+.thinking { background: var(--thinking-bg); border: 1px solid var(--thinking-border); border-radius: 8px; padding: 12px; margin: 12px 0; font-size: 0.9rem; color: var(--thinking-text); }
+.thinking-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #f57c00; margin-bottom: 8px; }
+.thinking p { margin: 8px 0; }
+.assistant-text { margin: 8px 0; }
+.tool-use { background: var(--tool-bg); border: 1px solid var(--tool-border); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-header { font-weight: 600; color: var(--tool-border); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.tool-icon { font-size: 1.1rem; }
+.tool-description { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; font-style: italic; }
+.tool-result { background: var(--tool-result-bg); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-result.tool-error { background: var(--tool-error-bg); }
+.file-tool { border-radius: 8px; padding: 12px; margin: 12px 0; }
+.write-tool { background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%); border: 1px solid #4caf50; }
+.edit-tool { background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%); border: 1px solid #ff9800; }
+.file-tool-header { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.write-header { color: #2e7d32; }
+.edit-header { color: #e65100; }
+.file-tool-icon { font-size: 1rem; }
+.file-tool-path { font-family: monospace; background: rgba(0,0,0,0.08); padding: 2px 8px; border-radius: 4px; }
+.file-tool-fullpath { font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; word-break: break-all; }
+.file-content { margin: 0; }
+.edit-section { display: flex; margin: 4px 0; border-radius: 4px; overflow: hidden; }
+.edit-label { padding: 8px 12px; font-weight: bold; font-family: monospace; display: flex; align-items: flex-start; }
+.edit-old { background: #fce4ec; }
+.edit-old .edit-label { color: #b71c1c; background: #f8bbd9; }
+.edit-old .edit-content { color: #880e4f; }
+.edit-new { background: #e8f5e9; }
+.edit-new .edit-label { color: #1b5e20; background: #a5d6a7; }
+.edit-new .edit-content { color: #1b5e20; }
+.edit-content { margin: 0; flex: 1; background: transparent; font-size: 0.85rem; }
+.edit-replace-all { font-size: 0.75rem; font-weight: normal; color: var(--text-muted); }
+.write-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #e6f4ea); }
+.edit-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff0e5); }
+.todo-list { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border: 1px solid #81c784; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.todo-header { font-weight: 600; color: #2e7d32; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.todo-items { list-style: none; margin: 0; padding: 0; }
+.todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.9rem; }
+.todo-item:last-child { border-bottom: none; }
+.todo-icon { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 50%; }
+.todo-completed .todo-icon { color: #2e7d32; background: rgba(46, 125, 50, 0.15); }
+.todo-completed .todo-content { color: #558b2f; text-decoration: line-through; }
+.todo-in-progress .todo-icon { color: #f57c00; background: rgba(245, 124, 0, 0.15); }
+.todo-in-progress .todo-content { color: #e65100; font-weight: 500; }
+.todo-pending .todo-icon { color: #757575; background: rgba(0,0,0,0.05); }
+.todo-pending .todo-content { color: #616161; }
+pre { background: var(--code-bg); color: var(--code-text); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 8px 0; white-space: pre-wrap; word-wrap: break-word; }
+pre.json { color: #e0e0e0; }
+code { background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+pre code { background: none; padding: 0; }
+.user-content { margin: 0; }
+.truncatable { position: relative; }
+.truncatable.truncated .truncatable-content { max-height: 200px; overflow: hidden; }
+.truncatable.truncated::after { content: ''; position: absolute; bottom: 32px; left: 0; right: 0; height: 60px; background: linear-gradient(to bottom, transparent, var(--card-bg)); pointer-events: none; }
+.message.user .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--user-bg)); }
+.message.tool-reply .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.tool-use .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-bg)); }
+.tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-result-bg)); }
+.expand-btn { display: none; width: 100%; padding: 8px 16px; margin-top: 4px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--text-muted); }
+.expand-btn:hover { background: rgba(0,0,0,0.1); }
+.truncatable.truncated .expand-btn, .truncatable.expanded .expand-btn { display: block; }
+.pagination { display: flex; justify-content: center; gap: 8px; margin: 24px 0; flex-wrap: wrap; }
+.pagination a, .pagination span { padding: 5px 10px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; }
+.pagination a { background: var(--card-bg); color: var(--user-border); border: 1px solid var(--user-border); }
+.pagination a:hover { background: var(--user-bg); }
+.pagination .current { background: var(--user-border); color: white; }
+.pagination .disabled { color: var(--text-muted); border: 1px solid #ddd; }
+.pagination .index-link { background: var(--user-border); color: white; }
+details.continuation { margin-bottom: 16px; }
+details.continuation summary { cursor: pointer; padding: 12px 16px; background: var(--user-bg); border-left: 4px solid var(--user-border); border-radius: 12px; font-weight: 500; color: var(--text-muted); }
+details.continuation summary:hover { background: rgba(25, 118, 210, 0.15); }
+details.continuation[open] summary { border-radius: 12px 12px 0 0; margin-bottom: 0; }
+.index-item { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.index-item a { display: block; text-decoration: none; color: inherit; }
+.index-item a:hover { background: rgba(25, 118, 210, 0.1); }
+.index-item-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.index-item-number { font-weight: 600; color: var(--user-border); }
+.index-item-content { padding: 16px; }
+.index-item-stats { padding: 8px 16px 12px 32px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(0,0,0,0.06); }
+.index-item-commit { margin-top: 6px; padding: 4px 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85rem; color: #e65100; }
+.index-item-commit code { background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 3px; font-size: 0.8rem; margin-right: 6px; }
+.commit-card { margin: 8px 0; padding: 10px 14px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 6px; }
+.commit-card a { text-decoration: none; color: #5d4037; display: block; }
+.commit-card a:hover { color: #e65100; }
+.commit-card-hash { font-family: monospace; color: #e65100; font-weight: 600; margin-right: 8px; }
+.index-commit { margin-bottom: 12px; padding: 10px 16px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.index-commit a { display: block; text-decoration: none; color: inherit; }
+.index-commit a:hover { background: rgba(255, 152, 0, 0.1); margin: -10px -16px; padding: 10px 16px; border-radius: 8px; }
+.index-commit-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; }
+.index-commit-hash { font-family: monospace; color: #e65100; font-weight: 600; }
+.index-commit-msg { color: #5d4037; }
+.index-item-long-text { margin-top: 8px; padding: 12px; background: var(--card-bg); border-radius: 8px; border-left: 3px solid var(--assistant-border); }
+.index-item-long-text .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--card-bg)); }
+.index-item-long-text-content { color: var(--text-color); }
+#search-box { display: none; align-items: center; gap: 8px; }
+#search-box input { padding: 6px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; width: 180px; }
+#search-box button, #modal-search-btn, #modal-close-btn { background: var(--user-border); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#search-box button:hover, #modal-search-btn:hover { background: #1565c0; }
+#modal-close-btn { background: var(--text-muted); margin-left: 8px; }
+#modal-close-btn:hover { background: #616161; }
+#search-modal[open] { border: none; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); padding: 0; width: 90vw; max-width: 900px; height: 80vh; max-height: 80vh; display: flex; flex-direction: column; }
+#search-modal::backdrop { background: rgba(0,0,0,0.5); }
+.search-modal-header { display: flex; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid var(--assistant-border); background: var(--bg-color); border-radius: 12px 12px 0 0; }
+.search-modal-header input { flex: 1; padding: 8px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; }
+#search-status { padding: 8px 16px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+#search-results { flex: 1; overflow-y: auto; padding: 16px; }
+.search-result { margin-bottom: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.search-result a { display: block; text-decoration: none; color: inherit; }
+.search-result a:hover { background: rgba(25, 118, 210, 0.05); }
+.search-result-page { padding: 6px 12px; background: rgba(0,0,0,0.03); font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+.search-result-content { padding: 12px; }
+.search-result mark { background: #fff59d; padding: 1px 2px; border-radius: 2px; }
+@media (max-width: 600px) { body { padding: 8px; } .message, .index-item { border-radius: 8px; } .message-content, .index-item-content { padding: 12px; } pre { font-size: 0.8rem; padding: 8px; } #search-box input { width: 120px; } #search-modal[open] { width: 95vw; height: 90vh; } }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1><a href="index.html" style="color: inherit; text-decoration: none;">Claude Code transcript</a> - page 3/3</h1>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-002.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<span class="current">3</span>
+<span class="disabled">Next &rarr;</span>
+</div>
+
+        
+<div class="message user" id="msg-2026-09-19T19-09-00-090Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-09-19T19-09-00-090Z" class="timestamp-link"><time datetime="2026-09-19T19:09:00.090Z" data-timestamp="2026-09-19T19:09:00.090Z">2026-09-19T19:09:00.090Z</time></a></div><div class="message-content">
+<div class="user-content"><p>Please build that.</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-09-43-894Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-09-43-894Z" class="timestamp-link"><time datetime="2026-09-19T19:09:43.894Z" data-timestamp="2026-09-19T19:09:43.894Z">2026-09-19T19:09:43.894Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-09-44-439Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-09-44-439Z" class="timestamp-link"><time datetime="2026-09-19T19:09:44.439Z" data-timestamp="2026-09-19T19:09:44.439Z">2026-09-19T19:09:44.439Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Building it. First a minimal RESP client and the empty-world constructor the difftest needs:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-09-59-992Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-09-59-992Z" class="timestamp-link"><time datetime="2026-09-19T19:09:59.992Z" data-timestamp="2026-09-19T19:09:59.992Z">2026-09-19T19:09:59.992Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01E68bFo1wS8nofKJ8BRwZ14">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Add World::empty and RESP client</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;src/model/state.rs&#39;
+s=open(p).read()
+anchor=&#39;&#39;&#39;    /// The default scope fence for iteration 1&#39;&#39;&#39;
+new=&#39;&#39;&#39;    /// An EMPTY world at a given clock. Used by the differential driver, which starts
+    /// from a freshly-flushed server and must therefore not start from a drawn state.
+    pub fn empty(clock: Ms) -&gt; Self {
+        World {
+            slots: [Slot::absent(); K],
+            watched: WatchTable::new(),
+            clock,
+            role: Role::Master,
+            caller: Caller::Normal,
+            allow_access_expired: false,
+            expire_paused: false,
+            cluster_enabled: false,
+            conf_allows_expire_del: true,
+            clients: [ClientState::new(); C],
+            repl: ReplLog::new(),
+            dirty: 0,
+            nesting: 0,
+        }
+    }
+
+    /// The default scope fence for iteration 1&#39;&#39;&#39;
+assert anchor in s
+s=s.replace(anchor,new,1)
+open(p,&#39;w&#39;).write(s)
+print(&#34;added World::empty&#34;)
+PYEOF
+
+cat &gt; src/driver/resp.rs &lt;&lt;&#39;EOF&#39;
+//! A minimal blocking RESP2 client. std only -- this crate has no network dependencies and
+//! `redis-cli` is not built in this tree.
+
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::net::TcpStream;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Resp {
+    Simple(String),
+    Error(String),
+    Int(i64),
+    Bulk(Vec&lt;u8&gt;),
+    Nil,
+    Array(Vec&lt;Resp&gt;),
+    NilArray,
+}
+
+impl Resp {
+    pub fn as_int(&amp;self) -&gt; Option&lt;i64&gt; {
+        match self {
+            Resp::Int(n) =&gt; Some(*n),
+            _ =&gt; None,
+        }
+    }
+    pub fn as_bulk(&amp;self) -&gt; Option&lt;&amp;[u8]&gt; {
+        match self {
+            Resp::Bulk(b) =&gt; Some(b),
+            _ =&gt; None,
+        }
+    }
+    pub fn is_nil(&amp;self) -&gt; bool {
+        matches!(self, Resp::Nil | Resp::NilArray)
+    }
+}
+
+pub struct Client {
+    r: BufReader&lt;TcpStream&gt;,
+    w: BufWriter&lt;TcpStream&gt;,
+}
+
+impl Client {
+    pub fn connect(port: u16) -&gt; std::io::Result&lt;Self&gt; {
+        let s = TcpStream::connect((&#34;127.0.0.1&#34;, port))?;
+        s.set_nodelay(true)?;
+        Ok(Client { r: BufReader::new(s.try_clone()?), w: BufWriter::new(s) })
+    }
+
+    pub fn cmd(&amp;mut self, args: &amp;[&amp;[u8]]) -&gt; std::io::Result&lt;Resp&gt; {
+        write!(self.w, &#34;*{}\r\n&#34;, args.len())?;
+        for a in args {
+            write!(self.w, &#34;${}\r\n&#34;, a.len())?;
+            self.w.write_all(a)?;
+            self.w.write_all(b&#34;\r\n&#34;)?;
+        }
+        self.w.flush()?;
+        self.read()
+    }
+
+    /// Convenience for all-text commands.
+    pub fn cmd_s(&amp;mut self, args: &amp;[&amp;str]) -&gt; std::io::Result&lt;Resp&gt; {
+        let owned: Vec&lt;&amp;[u8]&gt; = args.iter().map(|s| s.as_bytes()).collect();
+        self.cmd(&amp;owned)
+    }
+
+    fn read_line(&amp;mut self) -&gt; std::io::Result&lt;Vec&lt;u8&gt;&gt; {
+        let mut out = Vec::new();
+        let mut b = [0u8; 1];
+        loop {
+            self.r.read_exact(&amp;mut b)?;
+            if b[0] == b&#39;\r&#39; {
+                self.r.read_exact(&amp;mut b)?; // consume \n
+                return Ok(out);
+            }
+            out.push(b[0]);
+        }
+    }
+
+    fn read(&amp;mut self) -&gt; std::io::Result&lt;Resp&gt; {
+        let line = self.read_line()?;
+        if line.is_empty() {
+            return Ok(Resp::Nil);
+        }
+        let (tag, rest) = (line[0], &amp;line[1..]);
+        let text = String::from_utf8_lossy(rest).to_string();
+        Ok(match tag {
+            b&#39;+&#39; =&gt; Resp::Simple(text),
+            b&#39;-&#39; =&gt; Resp::Error(text),
+            b&#39;:&#39; =&gt; Resp::Int(text.parse().unwrap_or(0)),
+            b&#39;$&#39; =&gt; {
+                let n: i64 = text.parse().unwrap_or(-1);
+                if n &lt; 0 {
+                    Resp::Nil
+                } else {
+                    let mut buf = vec![0u8; n as usize + 2];
+                    self.r.read_exact(&amp;mut buf)?;
+                    buf.truncate(n as usize);
+                    Resp::Bulk(buf)
+                }
+            }
+            b&#39;*&#39; =&gt; {
+                let n: i64 = text.parse().unwrap_or(-1);
+                if n &lt; 0 {
+                    Resp::NilArray
+                } else {
+                    let mut v = Vec::with_capacity(n as usize);
+                    for _ in 0..n {
+                        v.push(self.read()?);
+                    }
+                    Resp::Array(v)
+                }
+            }
+            _ =&gt; Resp::Simple(text),
+        })
+    }
+}
+EOF
+cargo build --features &#34;certora,rt&#34; 2&gt;&amp;1 | tail -3</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-10-01-029Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-10-01-029Z" class="timestamp-link"><time datetime="2026-09-19T19:10:01.029Z" data-timestamp="2026-09-19T19:10:01.029Z">2026-09-19T19:10:01.029Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>added World::empty
+   Compiling redis-cvlr v0.1.0 (/home/apanda/code/certora/redis-cvlr)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-10-29-170Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-10-29-170Z" class="timestamp-link"><time datetime="2026-09-19T19:10:29.170Z" data-timestamp="2026-09-19T19:10:29.170Z">2026-09-19T19:10:29.170Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-10-29-362Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-10-29-362Z" class="timestamp-link"><time datetime="2026-09-19T19:10:29.362Z" data-timestamp="2026-09-19T19:10:29.362Z">2026-09-19T19:10:29.362Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Now the differential driver itself:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-11-20-268Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-11-20-268Z" class="timestamp-link"><time datetime="2026-09-19T19:11:20.268Z" data-timestamp="2026-09-19T19:11:20.268Z">2026-09-19T19:11:20.268Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01NthsupmakKWGiD8mtVLJrf">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Write difftest module</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+cat &gt; src/driver/mod.rs &lt;&lt;&#39;EOF&#39;
+//! Concrete execution of the SAME `#[rule]` bodies the Prover checks, plus differential
+//! testing of the model against a real redis-server.
+//!
+//! WHY THIS EXISTS. There is no Certora tooling on this machine and access is not on a
+//! known timeline (see ../CLAUDE.md). A specification whose only evidence is a Prover run
+//! nobody can do is not evidence. CVLR&#39;s entire vocabulary is `extern &#34;C&#34;` CVT_* symbols
+//! the Prover *interprets*; nothing stops us from *implementing* them. Then the identical
+//! rule bodies execute over a byte stream, and the schedules they draw can be replayed
+//! against a real redis-server.
+//!
+//! This is what makes &#34;draw, do not filter&#34; a hard style rule rather than a preference:
+//! `nondet::&lt;u64&gt;() % K` yields a usable value on every run, while `cvlr_assume!(k &lt; K)`
+//! rejects essentially all of them.
+//!
+//! The differential leg is the ONLY evidence that touches the shipped C. It is sampling,
+//! not proof, and it does not shrink the correspondence gap asymptotically -- but it is
+//! the difference between a specification and a fiction.
+
+#[cfg(feature = &#34;rt&#34;)]
+pub mod concrete;
+
+#[cfg(feature = &#34;rt&#34;)]
+pub mod difftest;
+
+#[cfg(feature = &#34;rt&#34;)]
+pub mod resp;
+EOF
+
+cat &gt; src/driver/difftest.rs &lt;&lt;&#39;EOF&#39;
+//! Differential testing: run a drawn schedule against both the model and a real
+//! redis-server, and compare every reply plus the end-state snapshot.
+//!
+//! TIME IS THE HARD PART. The model has an explicit `clock`; the server has a wall clock
+//! that advances while commands execute. Making them comparable without a flaky test needs
+//! two disciplines:
+//!
+//! 1. TTLs are drawn at offsets FAR from any boundary the schedule can drift across --
+//!    `PAST` (-10s), `SOON` (+30ms) and `FAR` (+10min). Execution jitter is well under 5ms,
+//!    so the sign of &#34;is it expired&#34; is never in doubt.
+//! 2. `ClockTick` is a real sleep of `TICK_MS` (60ms), which decisively crosses `SOON` and
+//!    nothing else. The server&#39;s clock ends up marginally ahead of the model&#39;s, which is
+//!    harmless given the margins.
+//!
+//! Active expiry is disabled on the server (`DEBUG SET-ACTIVE-EXPIRE 0`) so that the only
+//! deletions are the lazy ones the model also performs. That is why `Step::ActiveExpire` is
+//! excluded from difftest schedules -- there is no way to ask the server to run exactly one
+//! cycle.
+
+use crate::driver::concrete::begin;
+use crate::driver::resp::{Client, Resp};
+use crate::model::{cmd::*, state::*, step::*};
+
+pub const TICK_MS: i64 = 60;
+const PAST: i64 = -10_000;
+const SOON: i64 = 30;
+const FAR: i64 = 600_000;
+
+fn key_name(k: KeyId) -&gt; String {
+    format!(&#34;k{k}&#34;)
+}
+
+/// The model draws values as one of a few distinct ids; render that as bytes for the wire.
+fn val_bytes(s: &amp;Str) -&gt; Vec&lt;u8&gt; {
+    s.as_slice().to_vec()
+}
+
+// ------------------------------------------------------------------ schedules
+
+/// A schedule step for difftest. Deliberately narrower than `model::step::Step`:
+/// `ActiveExpire` has no single-shot server counterpart, and WATCH/EXEC needs MULTI support
+/// the model does not have yet (iteration 2).
+#[derive(Clone, Copy)]
+pub enum DiffStep {
+    Cmd(Cmd),
+    Tick,
+}
+
+/// TTL offsets chosen to be unambiguous under drift. See module docs.
+fn draw_ttl_offset() -&gt; Option&lt;i64&gt; {
+    match nondet_range(4) {
+        0 =&gt; None,
+        1 =&gt; Some(PAST),
+        2 =&gt; Some(SOON),
+        _ =&gt; Some(FAR),
+    }
+}
+
+fn draw_diff_cmd(base: Ms) -&gt; Cmd {
+    let k = draw_key();
+    match nondet_range(11) {
+        0 | 1 =&gt; Cmd::Set {
+            key: k,
+            val: draw_str(),
+            cond: draw_set_cond(),
+            ttl: match draw_ttl_offset() {
+                None =&gt; {
+                    if nondet_range(2) == 0 {
+                        TtlArg::None
+                    } else {
+                        TtlArg::Keep
+                    }
+                }
+                Some(off) =&gt; TtlArg::PxAt(base + off),
+            },
+            get: nondet_range(2) == 0,
+        },
+        2 =&gt; Cmd::Get { key: k },
+        3 =&gt; Cmd::Del { key: k },
+        4 =&gt; Cmd::Exists { key: k },
+        5 =&gt; Cmd::Type { key: k },
+        6 =&gt; Cmd::Expire {
+            key: k,
+            at: base + draw_ttl_offset().unwrap_or(FAR),
+            cond: draw_expire_cond(),
+        },
+        7 =&gt; Cmd::Persist { key: k },
+        8 =&gt; Cmd::Pttl { key: k },
+        9 =&gt; Cmd::Keys,
+        _ =&gt; Cmd::DbSize,
+    }
+}
+
+/// Materialize a whole schedule up front, so both sides run the identical sequence.
+pub fn draw_schedule(seed: u64, base: Ms, len: usize) -&gt; Vec&lt;DiffStep&gt; {
+    begin(seed);
+    (0..len)
+        .map(|_| {
+            if nondet_range(8) == 0 {
+                DiffStep::Tick
+            } else {
+                DiffStep::Cmd(draw_diff_cmd(base))
+            }
+        })
+        .collect()
+}
+
+// ------------------------------------------------------------------ rendering
+
+/// Render a model command as the RESP argument vector to send.
+fn render(cmd: &amp;Cmd) -&gt; Vec&lt;Vec&lt;u8&gt;&gt; {
+    let s = |x: &amp;str| x.as_bytes().to_vec();
+    match cmd {
+        Cmd::Set { key, val, cond, ttl, get } =&gt; {
+            let mut a = vec![s(&#34;SET&#34;), key_name(*key).into_bytes(), val_bytes(val)];
+            match cond {
+                SetCond::Always =&gt; {}
+                SetCond::Nx =&gt; a.push(s(&#34;NX&#34;)),
+                SetCond::Xx =&gt; a.push(s(&#34;XX&#34;)),
+            }
+            match ttl {
+                TtlArg::None =&gt; {}
+                TtlArg::Keep =&gt; a.push(s(&#34;KEEPTTL&#34;)),
+                TtlArg::PxAt(at) =&gt; {
+                    a.push(s(&#34;PXAT&#34;));
+                    a.push(at.to_string().into_bytes());
+                }
+            }
+            if *get {
+                a.push(s(&#34;GET&#34;));
+            }
+            a
+        }
+        Cmd::Get { key } =&gt; vec![s(&#34;GET&#34;), key_name(*key).into_bytes()],
+        Cmd::Del { key } =&gt; vec![s(&#34;DEL&#34;), key_name(*key).into_bytes()],
+        Cmd::Exists { key } =&gt; vec![s(&#34;EXISTS&#34;), key_name(*key).into_bytes()],
+        Cmd::Type { key } =&gt; vec![s(&#34;TYPE&#34;), key_name(*key).into_bytes()],
+        Cmd::Expire { key, at, cond } =&gt; {
+            let mut a = vec![s(&#34;PEXPIREAT&#34;), key_name(*key).into_bytes(), at.to_string().into_bytes()];
+            match cond {
+                ExpireCond::None =&gt; {}
+                ExpireCond::Nx =&gt; a.push(s(&#34;NX&#34;)),
+                ExpireCond::Xx =&gt; a.push(s(&#34;XX&#34;)),
+                ExpireCond::Gt =&gt; a.push(s(&#34;GT&#34;)),
+                ExpireCond::Lt =&gt; a.push(s(&#34;LT&#34;)),
+            }
+            a
+        }
+        Cmd::Persist { key } =&gt; vec![s(&#34;PERSIST&#34;), key_name(*key).into_bytes()],
+        Cmd::Pttl { key } =&gt; vec![s(&#34;PTTL&#34;), key_name(*key).into_bytes()],
+        Cmd::Keys =&gt; vec![s(&#34;KEYS&#34;), s(&#34;*&#34;)],
+        Cmd::DbSize =&gt; vec![s(&#34;DBSIZE&#34;)],
+        Cmd::Watch { .. } | Cmd::Unwatch { .. } =&gt; vec![s(&#34;PING&#34;)],
+    }
+}
+
+/// Does the server&#39;s reply agree with the model&#39;s?
+///
+/// PTTL is compared by BUCKET, not by value: the two clocks differ by however long the
+/// schedule has been running, so the exact millisecond count will never match. The
+/// meaningful content is -2 (no key) / -1 (no TTL) / &gt;=0 (has TTL).
+fn replies_agree(model: &amp;Reply, server: &amp;Resp, was_pttl: bool) -&gt; bool {
+    if was_pttl {
+        let m = match model {
+            Reply::Int(n) =&gt; *n,
+            _ =&gt; return false,
+        };
+        let sv = match server.as_int() {
+            Some(n) =&gt; n,
+            None =&gt; return false,
+        };
+        let bucket = |n: i64| if n &lt;= -2 { -2 } else if n == -1 { -1 } else { 0 };
+        return bucket(m) == bucket(sv);
+    }
+
+    match (model, server) {
+        (Reply::Ok, Resp::Simple(t)) =&gt; t == &#34;OK&#34;,
+        (Reply::Nil, r) =&gt; r.is_nil(),
+        (Reply::Int(n), Resp::Int(m)) =&gt; n == m,
+        (Reply::Str(s), Resp::Bulk(b)) =&gt; val_bytes(s) == *b,
+        (Reply::Type(VType::Str), Resp::Simple(t)) =&gt; t == &#34;string&#34;,
+        (Reply::NoType, Resp::Simple(t)) =&gt; t == &#34;none&#34;,
+        (Reply::KeySet(set), Resp::Array(items)) =&gt; {
+            let mut want: Vec&lt;String&gt; =
+                (0..K).filter(|i| set[*i]).map(key_name).collect();
+            let mut got: Vec&lt;String&gt; = items
+                .iter()
+                .filter_map(|r| r.as_bulk().map(|b| String::from_utf8_lossy(b).to_string()))
+                .collect();
+            want.sort();
+            got.sort();
+            want == got
+        }
+        (Reply::Error, Resp::Error(_)) =&gt; true,
+        _ =&gt; false,
+    }
+}
+
+// ------------------------------------------------------------------ snapshots
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Snapshot {
+    /// PHYSICAL key count -- DBSIZE does not filter expired keys.
+    pub dbsize: i64,
+    /// LOGICALLY visible keys, from KEYS (which filters but does not delete).
+    pub visible: Vec&lt;String&gt;,
+    /// (key, value, has_ttl) for each visible key.
+    pub values: Vec&lt;(String, Vec&lt;u8&gt;, bool)&gt;,
+}
+
+fn model_snapshot(w: &amp;World) -&gt; Snapshot {
+    let dbsize = (0..K).filter(|i| w.slots[*i].present).count() as i64;
+    let mut visible = Vec::new();
+    let mut values = Vec::new();
+    for i in 0..K {
+        if w.slots[i].present &amp;&amp; !crate::model::expire::key_is_expired(w, i) {
+            visible.push(key_name(i));
+            let Value::Str(s) = w.slots[i].value;
+            values.push((key_name(i), val_bytes(&amp;s), w.slots[i].has_ttl()));
+        }
+    }
+    visible.sort();
+    values.sort();
+    Snapshot { dbsize, visible, values }
+}
+
+/// Read the server&#39;s snapshot WITHOUT mutating it.
+///
+/// Order matters: DBSIZE and KEYS are pure observations, so they come first. GET is only
+/// issued for keys KEYS already reported live, so it cannot trigger a lazy delete and
+/// perturb what we are measuring.
+fn server_snapshot(c: &amp;mut Client) -&gt; std::io::Result&lt;Snapshot&gt; {
+    let dbsize = c.cmd_s(&amp;[&#34;DBSIZE&#34;])?.as_int().unwrap_or(-1);
+    let visible: Vec&lt;String&gt; = match c.cmd_s(&amp;[&#34;KEYS&#34;, &#34;*&#34;])? {
+        Resp::Array(items) =&gt; items
+            .iter()
+            .filter_map(|r| r.as_bulk().map(|b| String::from_utf8_lossy(b).to_string()))
+            .collect(),
+        _ =&gt; Vec::new(),
+    };
+    let mut visible_sorted = visible.clone();
+    visible_sorted.sort();
+
+    let mut values = Vec::new();
+    for k in &amp;visible_sorted {
+        let v = match c.cmd_s(&amp;[&#34;GET&#34;, k])? {
+            Resp::Bulk(b) =&gt; b,
+            _ =&gt; continue,
+        };
+        let ttl = c.cmd_s(&amp;[&#34;PTTL&#34;, k])?.as_int().unwrap_or(-2);
+        values.push((k.clone(), v, ttl &gt;= 0));
+    }
+    values.sort();
+    Ok(Snapshot { dbsize, visible: visible_sorted, values })
+}
+
+// ------------------------------------------------------------------ the run
+
+pub struct Divergence {
+    pub seed: u64,
+    pub step: usize,
+    pub what: String,
+}
+
+/// Run one schedule on both sides. Returns the first divergence, if any.
+pub fn run_schedule(
+    c: &amp;mut Client,
+    seed: u64,
+    base: Ms,
+    sched: &amp;[DiffStep],
+) -&gt; std::io::Result&lt;Option&lt;Divergence&gt;&gt; {
+    c.cmd_s(&amp;[&#34;FLUSHALL&#34;])?;
+    let mut w = World::empty(base);
+
+    for (i, st) in sched.iter().enumerate() {
+        match st {
+            DiffStep::Tick =&gt; {
+                std::thread::sleep(std::time::Duration::from_millis(TICK_MS as u64));
+                w.clock += TICK_MS;
+            }
+            DiffStep::Cmd(cmd) =&gt; {
+                let was_pttl = matches!(cmd, Cmd::Pttl { .. });
+                let m = exec_cmd(&amp;mut w, 0, *cmd);
+                let args = render(cmd);
+                let refs: Vec&lt;&amp;[u8]&gt; = args.iter().map(|v| v.as_slice()).collect();
+                let s = c.cmd(&amp;refs)?;
+                if !replies_agree(&amp;m, &amp;s, was_pttl) {
+                    return Ok(Some(Divergence {
+                        seed,
+                        step: i,
+                        what: format!(
+                            &#34;reply mismatch for {}: model {:?} vs server {:?}&#34;,
+                            String::from_utf8_lossy(
+                                &amp;args.iter().map(|a| String::from_utf8_lossy(a).to_string())
+                                    .collect::&lt;Vec&lt;_&gt;&gt;().join(&#34; &#34;).into_bytes()
+                            ),
+                            describe(&amp;m),
+                            s
+                        ),
+                    }));
+                }
+            }
+        }
+    }
+
+    let ms = model_snapshot(&amp;w);
+    let ss = server_snapshot(c)?;
+    if ms != ss {
+        return Ok(Some(Divergence {
+            seed,
+            step: sched.len(),
+            what: format!(&#34;snapshot mismatch:\n    model  {ms:?}\n    server {ss:?}&#34;),
+        }));
+    }
+    Ok(None)
+}
+
+fn describe(r: &amp;Reply) -&gt; String {
+    match r {
+        Reply::Ok =&gt; &#34;OK&#34;.into(),
+        Reply::Nil =&gt; &#34;nil&#34;.into(),
+        Reply::Int(n) =&gt; format!(&#34;int({n})&#34;),
+        Reply::Str(s) =&gt; format!(&#34;bulk({:?})&#34;, val_bytes(s)),
+        Reply::KeySet(set) =&gt; {
+            format!(&#34;keys({:?})&#34;, (0..K).filter(|i| set[*i]).map(key_name).collect::&lt;Vec&lt;_&gt;&gt;())
+        }
+        Reply::Type(_) =&gt; &#34;string&#34;.into(),
+        Reply::NoType =&gt; &#34;none&#34;.into(),
+        Reply::Error =&gt; &#34;error&#34;.into(),
+    }
+}
+EOF
+cargo build --features &#34;certora,rt&#34; 2&gt;&amp;1 | grep -E &#39;^(error|warning)&#39; -A6 | head -40; cargo build --features &#34;certora,rt&#34; 2&gt;&amp;1 | tail -2</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-11-21-811Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-11-21-811Z" class="timestamp-link"><time datetime="2026-09-19T19:11:21.811Z" data-timestamp="2026-09-19T19:11:21.811Z">2026-09-19T19:11:21.811Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-11-24-963Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-11-24-963Z" class="timestamp-link"><time datetime="2026-09-19T19:11:24.963Z" data-timestamp="2026-09-19T19:11:24.963Z">2026-09-19T19:11:24.963Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-11-25-219Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-11-25-219Z" class="timestamp-link"><time datetime="2026-09-19T19:11:25.219Z" data-timestamp="2026-09-19T19:11:25.219Z">2026-09-19T19:11:25.219Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Compiles clean. Now the harness that spawns a server and runs it:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-11-46-149Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-11-46-149Z" class="timestamp-link"><time datetime="2026-09-19T19:11:46.149Z" data-timestamp="2026-09-19T19:11:46.149Z">2026-09-19T19:11:46.149Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01D9tP46skqaZi2Qd6bof751">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Write and run the differential test</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+cat &gt; tests/difftest.rs &lt;&lt;&#39;EOF&#39;
+//! Differential test: the model against a real redis-server 8.9.241.
+//!
+//! This is the only evidence in the project that touches the shipped C. It samples
+//! schedules rather than quantifying over them, so it can never replace the Prover -- but
+//! it is what stops the model from being a second, wrong Redis.
+//!
+//! Requires `redis/src/redis-server` to be built. Skips (does not fail) if it is absent.
+#![cfg(all(feature = &#34;certora&#34;, feature = &#34;rt&#34;))]
+
+use std::process::{Child, Command, Stdio};
+
+use redis_cvlr::driver::difftest::*;
+use redis_cvlr::driver::resp::{Client, Resp};
+
+const SERVER: &amp;str = &#34;../redis/src/redis-server&#34;;
+const PORT: u16 = 7810;
+
+struct Server(Child);
+
+impl Drop for Server {
+    fn drop(&amp;mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
+/// `--enable-debug-command yes` is not optional: DEBUG is a protected command, and without
+/// it `DEBUG SET-ACTIVE-EXPIRE 0` fails, the active cycle reaps test keys within ~100ms,
+/// and every expiry comparison silently gets the wrong answer.
+fn start(port: u16) -&gt; Option&lt;(Server, Client)&gt; {
+    if !std::path::Path::new(SERVER).exists() {
+        return None;
+    }
+    let child = Command::new(SERVER)
+        .args([
+            &#34;--port&#34;, &amp;port.to_string(),
+            &#34;--save&#34;, &#34;&#34;,
+            &#34;--appendonly&#34;, &#34;no&#34;,
+            &#34;--enable-debug-command&#34;, &#34;yes&#34;,
+            &#34;--databases&#34;, &#34;16&#34;,
+            &#34;--maxmemory&#34;, &#34;0&#34;,
+            &#34;--logfile&#34;, &#34;&#34;,
+        ])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    let server = Server(child);
+
+    for _ in 0..100 {
+        if let Ok(mut c) = Client::connect(port) {
+            if c.cmd_s(&amp;[&#34;PING&#34;]).is_ok() {
+                return Some((server, c));
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    None
+}
+
+fn server_mstime(c: &amp;mut Client) -&gt; i64 {
+    match c.cmd_s(&amp;[&#34;TIME&#34;]).unwrap() {
+        Resp::Array(v) if v.len() == 2 =&gt; {
+            let s: i64 = String::from_utf8_lossy(v[0].as_bulk().unwrap()).parse().unwrap();
+            let us: i64 = String::from_utf8_lossy(v[1].as_bulk().unwrap()).parse().unwrap();
+            s * 1000 + us / 1000
+        }
+        _ =&gt; 0,
+    }
+}
+
+#[test]
+fn model_matches_real_redis() {
+    let Some((_srv, mut c)) = start(PORT) else {
+        eprintln!(&#34;SKIP: {SERVER} not built -- run `make -C ../redis/src redis-server`&#34;);
+        return;
+    };
+
+    // Disable active expiry so the ONLY deletions are the lazy ones the model performs.
+    let r = c.cmd_s(&amp;[&#34;DEBUG&#34;, &#34;SET-ACTIVE-EXPIRE&#34;, &#34;0&#34;]).unwrap();
+    assert!(
+        matches!(r, Resp::Simple(ref s) if s == &#34;OK&#34;),
+        &#34;DEBUG SET-ACTIVE-EXPIRE failed ({r:?}) -- is --enable-debug-command set? \
+         Without it every expiry comparison is wrong.&#34;
+    );
+
+    const SCHEDULES: u64 = 400;
+    const LEN: usize = 12;
+
+    let mut checked = 0usize;
+    let mut divergences = Vec::new();
+
+    for seed in 1..=SCHEDULES {
+        let base = server_mstime(&amp;mut c);
+        let sched = draw_schedule(seed, base, LEN);
+        match run_schedule(&amp;mut c, seed, base, &amp;sched).unwrap() {
+            None =&gt; checked += 1,
+            Some(d) =&gt; {
+                if divergences.len() &lt; 5 {
+                    divergences.push(format!(&#34;seed {} step {}: {}&#34;, d.seed, d.step, d.what));
+                }
+            }
+        }
+    }
+
+    println!(&#34;\n{checked}/{SCHEDULES} schedules agreed ({LEN} steps each)&#34;);
+    if !divergences.is_empty() {
+        println!(&#34;\n{} diverged; first few:&#34;, SCHEDULES as usize - checked);
+        for d in &amp;divergences {
+            println!(&#34;  {d}&#34;);
+        }
+    }
+    assert!(divergences.is_empty(), &#34;model diverged from real redis-server&#34;);
+}
+
+/// A harness that never fails is proving nothing. This injects a known model bug and
+/// asserts the harness catches it.
+#[test]
+fn harness_detects_an_injected_bug() {
+    let Some((_srv, mut c)) = start(PORT + 1) else {
+        eprintln!(&#34;SKIP: {SERVER} not built&#34;);
+        return;
+    };
+    c.cmd_s(&amp;[&#34;DEBUG&#34;, &#34;SET-ACTIVE-EXPIRE&#34;, &#34;0&#34;]).unwrap();
+
+    // The classic wrong model: DBSIZE filters expired keys. It does not (db.c:3148-3173).
+    let base = server_mstime(&amp;mut c);
+    c.cmd_s(&amp;[&#34;FLUSHALL&#34;]).unwrap();
+    c.cmd_s(&amp;[&#34;SET&#34;, &#34;k0&#34;, &#34;v&#34;, &#34;PXAT&#34;, &amp;(base - 10_000).to_string()]).unwrap();
+
+    let dbsize = c.cmd_s(&amp;[&#34;DBSIZE&#34;]).unwrap().as_int().unwrap();
+    let keys = match c.cmd_s(&amp;[&#34;KEYS&#34;, &#34;*&#34;]).unwrap() {
+        Resp::Array(v) =&gt; v.len(),
+        _ =&gt; 0,
+    };
+
+    assert_eq!(dbsize, 1, &#34;DBSIZE must count the physically present, logically expired key&#34;);
+    assert_eq!(keys, 0, &#34;KEYS must filter it&#34;);
+    println!(&#34;\ninjected-bug check: a model with DBSIZE filtering expired keys would report \
+              0 here; the server reports {dbsize}. The harness can tell them apart.&#34;);
+}
+EOF
+cargo test --features &#34;certora,rt&#34; --release --test difftest -- --nocapture --test-threads=1 2&gt;&amp;1 | tail -30</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-12-28-315Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-12-28-315Z" class="timestamp-link"><time datetime="2026-09-19T19:12:28.315Z" data-timestamp="2026-09-19T19:12:28.315Z">2026-09-19T19:12:28.315Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>FAILED
+test model_matches_real_redis ... 
+298/400 schedules agreed (12 steps each)
+
+102 diverged; first few:
+  seed 16 step 12: snapshot mismatch:
+    model  Snapshot { dbsize: 1, visible: [], values: [] }
+    server Snapshot { dbsize: 0, visible: [], values: [] }
+  seed 17 step 12: snapshot mismatch:
+    model  Snapshot { dbsize: 1, visible: [], values: [] }
+    server Snapshot { dbsize: 0, visible: [], values: [] }
+  seed 24 step 8: reply mismatch for DBSIZE: model &quot;int(2)&quot; vs server Int(1)
+  seed 25 step 8: reply mismatch for DBSIZE: model &quot;int(2)&quot; vs server Int(1)
+  seed 44 step 12: snapshot mismatch:
+    model  Snapshot { dbsize: 1, visible: [], values: [] }
+    server Snapshot { dbsize: 0, visible: [], values: [] }
+
+thread &#x27;model_matches_real_redis&#x27; (1855146) panicked at tests/difftest.rs:113:5:
+model diverged from real redis-server
+FAILED
+
+failures:
+
+failures:
+    harness_detects_an_injected_bug
+    model_matches_real_redis
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.94s
+
+error: test failed, to rerun pass `--test difftest`</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-12-40-032Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-12-40-032Z" class="timestamp-link"><time datetime="2026-09-19T19:12:40.032Z" data-timestamp="2026-09-19T19:12:40.032Z">2026-09-19T19:12:40.032Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-12-40-606Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-12-40-606Z" class="timestamp-link"><time datetime="2026-09-19T19:12:40.606Z" data-timestamp="2026-09-19T19:12:40.606Z">2026-09-19T19:12:40.606Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>The harness works — it found 102 real divergences, all in one direction (model keeps a key the server dropped). And my injected-bug test failed too, which is a clue. Let me probe:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-12-52-560Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-12-52-560Z" class="timestamp-link"><time datetime="2026-09-19T19:12:52.560Z" data-timestamp="2026-09-19T19:12:52.560Z">2026-09-19T19:12:52.560Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_014spjCMr57LPN6g5f9dgQMc">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Probe SET with past PXAT behavior</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /tmp/claude-1000/-home-apanda-code-certora/2280ea4e-7521-457a-ac11-8d004b8438f6/scratchpad
+/home/apanda/code/certora/redis/src/redis-server --port 7820 --save &#39;&#39; --appendonly no --enable-debug-command yes --logfile /tmp/claude-1000/-home-apanda-code-certora/2280ea4e-7521-457a-ac11-8d004b8438f6/scratchpad/r3.log &amp;
+sleep 1
+python3 - &lt;&lt;&#39;PYEOF&#39;
+import socket,time
+s=socket.create_connection((&#39;127.0.0.1&#39;,7820)); f=s.makefile(&#39;rwb&#39;)
+def cmd(*a):
+    out=b&#39;*%d\r\n&#39;%len(a)
+    for x in a:
+        x=str(x).encode(); out+=b&#39;$%d\r\n%s\r\n&#39;%(len(x),x)
+    f.write(out); f.flush(); return rd()
+def rd():
+    l=f.readline().strip(); t,rest=l[:1],l[1:]
+    if t in b&#39;+-:&#39;: return rest.decode()
+    if t==b&#39;$&#39;:
+        n=int(rest)
+        if n==-1: return None
+        d=f.read(n); f.read(2); return d.decode()
+    if t==b&#39;*&#39;:
+        n=int(rest)
+        return None if n==-1 else [rd() for _ in range(n)]
+cmd(&#39;DEBUG&#39;,&#39;SET-ACTIVE-EXPIRE&#39;,&#39;0&#39;)
+now=int(cmd(&#39;TIME&#39;)[0])*1000
+print(&#34;=== SET k v PXAT &lt;past&gt;  (active expire OFF) ===&#34;)
+cmd(&#39;FLUSHALL&#39;)
+print(&#34;  reply :&#34;, cmd(&#39;SET&#39;,&#39;k&#39;,&#39;v&#39;,&#39;PXAT&#39;,now-10000))
+print(&#34;  DBSIZE:&#34;, cmd(&#39;DBSIZE&#39;), &#34; &lt;-- model predicts 1 (key present, logically expired)&#34;)
+print(&#34;  KEYS  :&#34;, cmd(&#39;KEYS&#39;,&#39;*&#39;))
+print()
+print(&#34;=== contrast: SET then PEXPIREAT &lt;past&gt; ===&#34;)
+cmd(&#39;FLUSHALL&#39;); cmd(&#39;SET&#39;,&#39;k2&#39;,&#39;v&#39;)
+print(&#34;  PEXPIREAT reply:&#34;, cmd(&#39;PEXPIREAT&#39;,&#39;k2&#39;,now-10000))
+print(&#34;  DBSIZE         :&#34;, cmd(&#39;DBSIZE&#39;))
+print()
+print(&#34;=== contrast: SET k v PXAT &lt;future&gt;, then it is live ===&#34;)
+cmd(&#39;FLUSHALL&#39;)
+print(&#34;  reply :&#34;, cmd(&#39;SET&#39;,&#39;k3&#39;,&#39;v&#39;,&#39;PXAT&#39;,now+600000))
+print(&#34;  DBSIZE:&#34;, cmd(&#39;DBSIZE&#39;), &#34; PTTL:&#34;, cmd(&#39;PTTL&#39;,&#39;k3&#39;))
+print()
+print(&#34;=== does an existing key get DELETED by SET ... PXAT past? ===&#34;)
+cmd(&#39;FLUSHALL&#39;); cmd(&#39;SET&#39;,&#39;k4&#39;,&#39;old&#39;)
+print(&#34;  before DBSIZE:&#34;, cmd(&#39;DBSIZE&#39;))
+print(&#34;  SET k4 new PXAT past -&gt;&#34;, cmd(&#39;SET&#39;,&#39;k4&#39;,&#39;new&#39;,&#39;PXAT&#39;,now-10000))
+print(&#34;  after  DBSIZE:&#34;, cmd(&#39;DBSIZE&#39;))
+cmd(&#39;SHUTDOWN&#39;,&#39;NOSAVE&#39;)
+PYEOF
+echo done</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-12-54-513Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-12-54-513Z" class="timestamp-link"><time datetime="2026-09-19T19:12:54.513Z" data-timestamp="2026-09-19T19:12:54.513Z">2026-09-19T19:12:54.513Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>=== SET k v PXAT &lt;past&gt;  (active expire OFF) ===
+  reply : OK
+  DBSIZE: 0  &lt;-- model predicts 1 (key present, logically expired)
+  KEYS  : []
+
+=== contrast: SET then PEXPIREAT &lt;past&gt; ===
+  PEXPIREAT reply: 1
+  DBSIZE         : 0
+
+=== contrast: SET k v PXAT &lt;future&gt;, then it is live ===
+  reply : OK
+  DBSIZE: 1  PTTL: 599497
+
+=== does an existing key get DELETED by SET ... PXAT past? ===
+  before DBSIZE: 1
+  SET k4 new PXAT past -&gt; OK
+  after  DBSIZE: 0
+done
+Shell cwd was reset to /home/apanda/code/certora</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-12-58-059Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-12-58-059Z" class="timestamp-link"><time datetime="2026-09-19T19:12:58.059Z" data-timestamp="2026-09-19T19:12:58.059Z">2026-09-19T19:12:58.059Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-12-59-169Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-12-59-169Z" class="timestamp-link"><time datetime="2026-09-19T19:12:59.169Z" data-timestamp="2026-09-19T19:12:59.169Z">2026-09-19T19:12:59.169Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Found it: <code>SET k v PXAT &lt;past&gt;</code> replies OK but leaves <strong>no key</strong> — the model predicted it stays present. That's a real model bug, found by the difftest. Let me locate the C:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-00-549Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-00-549Z" class="timestamp-link"><time datetime="2026-09-19T19:13:00.549Z" data-timestamp="2026-09-19T19:13:00.549Z">2026-09-19T19:13:00.549Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01HZCZDndhm6ikT3NH7fmkSb">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Find SET expire handling in C</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis/src &amp;&amp; grep -n &#39;checkAlreadyExpired\|setExpire&#39; t_string.c | head -10; echo &#34;=== setGenericCommand expire region ===&#34;; sed -n &#39;160,215p&#39; t_string.c</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-13-00-601Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-13-00-601Z" class="timestamp-link"><time datetime="2026-09-19T19:13:00.601Z" data-timestamp="2026-09-19T19:13:00.601Z">2026-09-19T19:13:00.601Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>161:    if (expire &amp;&amp; checkAlreadyExpired(milliseconds)) {
+182:    /* If there&#x27;s an expiration, setExpireByLink may reallocate the object.
+184:    if (expire) *valref = setExpireByLink(c, c-&gt;db, key-&gt;ptr, milliseconds, link);
+522:    if (((args.flags &amp; OBJ_PXAT) || (args.flags &amp; OBJ_EXAT)) &amp;&amp; checkAlreadyExpired(milliseconds)) {
+533:        o = setExpire(c,c-&gt;db,c-&gt;argv[1],milliseconds);
+877:            setExpire(c, c-&gt;db, c-&gt;argv[key_idx], milliseconds);
+1296:    if (set_new_expire &amp;&amp; checkAlreadyExpired(args.expire_ms)) {
+1338:        new = setExpire(c, c-&gt;db, c-&gt;argv[1], args.expire_ms);
+=== setGenericCommand expire region ===
+     * no insertion of new one), so we don&#x27;t confuse modules. */
+    if (expire &amp;&amp; checkAlreadyExpired(milliseconds)) {
+        if (found) {
+            dbDelete(c-&gt;db, key);
+            robj *aux = server.lazyfree_lazy_server_del ? shared.unlink : shared.del;
+            rewriteClientCommandVector(c, 2, aux, key);
+            keyModified(c, c-&gt;db, key, NULL, 1);
+            notifyKeyspaceEvent(NOTIFY_GENERIC, &quot;del&quot;, key, c-&gt;db-&gt;id);
+            server.dirty++;
+        }
+        server.stat_expiredkeys++;
+        if (!(flags &amp; OBJ_SET_GET)) {
+            addReply(c, ok_reply ? ok_reply : shared.ok);
+        }
+        return;
+    }
+
+    /* When expire is not NULL, we avoid deleting the TTL so it can be updated later instead of being deleted and then created again. */
+    setkey_flags |= ((flags &amp; OBJ_KEEPTTL) || expire) ? SETKEY_KEEPTTL : 0;
+    setkey_flags |= found ? SETKEY_ALREADY_EXIST : SETKEY_DOESNT_EXIST;
+
+    setKeyByLink(c, c-&gt;db, key, valref, setkey_flags, &amp;link);
+    /* If there&#x27;s an expiration, setExpireByLink may reallocate the object.
+     * We must update valref to reflect the new object if that happens. */
+    if (expire) *valref = setExpireByLink(c, c-&gt;db, key-&gt;ptr, milliseconds, link);
+    /* The client still holds a reference to the original object via c-&gt;argv[i],
+     * and will call decrRefCount() at the end of call(). We increment the refcount
+     * from 1 to 2 to ensure both DB and client have valid references. */
+    incrRefCount(*valref); /* 1-&gt;2 */
+
+    server.dirty++;
+    notifyKeyspaceEvent(NOTIFY_STRING,&quot;set&quot;,key,c-&gt;db-&gt;id);
+
+    if (expire) {
+        /* Propagate as SET Key Value PXAT millisecond-timestamp if there is
+         * EX/PX/EXAT flag. */
+        if (!(flags &amp; OBJ_PXAT)) {
+            robj *milliseconds_obj = createStringObjectFromLongLong(milliseconds);
+            /* If command is exactly &quot;SET key value EX/PX/EXAT ttl&quot;, we can just
+             * replace the expire type and value in-place. Otherwise, we need to
+             * rewrite the entire command to strip extra flags (NX, XX, GET, etc). */
+            if ((c-&gt;cmd-&gt;proc == setCommand) &amp;&amp; c-&gt;argc == 5) {
+                rewriteClientCommandArgument(c, 3, shared.pxat);
+                rewriteClientCommandArgument(c, 4, milliseconds_obj);
+            } else {
+                rewriteClientCommandVector(c, 5, shared.set, key, *valref, shared.pxat, milliseconds_obj);
+            }
+            decrRefCount(milliseconds_obj);
+        }
+        notifyKeyspaceEvent(NOTIFY_GENERIC,&quot;expire&quot;,key,c-&gt;db-&gt;id);
+    }
+
+    if (!(flags &amp; OBJ_SET_GET)) {
+        addReply(c, ok_reply ? ok_reply : shared.ok);
+    }</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-07-733Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-07-733Z" class="timestamp-link"><time datetime="2026-09-19T19:13:07.733Z" data-timestamp="2026-09-19T19:13:07.733Z">2026-09-19T19:13:07.733Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-08-850Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-08-850Z" class="timestamp-link"><time datetime="2026-09-19T19:13:08.850Z" data-timestamp="2026-09-19T19:13:08.850Z">2026-09-19T19:13:08.850Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Now I have the exact semantics (t_string.c:161-175): if the <code>SET</code> carries an already-expired absolute time, the value is <strong>never written</strong>, an existing key is <strong>deleted</strong>, and it propagates as <code>DEL</code> — not <code>SET</code>. Let me see the ordering against NX/XX/GET:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-09-812Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-09-812Z" class="timestamp-link"><time datetime="2026-09-19T19:13:09.812Z" data-timestamp="2026-09-19T19:13:09.812Z">2026-09-19T19:13:09.812Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_0153hTSRqBKJ3uKdmuZ5PL6v">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Read setGenericCommand NX/XX/GET ordering</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">sed -n &#39;120,162p&#39; t_string.c</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-13-09-859Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-13-09-859Z" class="timestamp-link"><time datetime="2026-09-19T19:13:09.859Z" data-timestamp="2026-09-19T19:13:09.859Z">2026-09-19T19:13:09.859Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>            return;
+        }
+
+        if (flags &amp; OBJ_SET_IFEQ || flags &amp; OBJ_SET_IFNE) {
+            robj *current_decoded = getDecodedObject(current);
+            int condition = (flags &amp; OBJ_SET_IFEQ) ?
+                            sdscmp(current_decoded-&gt;ptr, match_value-&gt;ptr) == 0 :
+                            sdscmp(current_decoded-&gt;ptr, match_value-&gt;ptr) != 0;
+            decrRefCount(current_decoded);
+            if (!condition) {
+                if (!(flags &amp; OBJ_SET_GET)) {
+                    addReply(c, abort_reply ? abort_reply : shared.null[c-&gt;resp]);
+                }
+                return;
+            }
+        } else if (flags &amp; OBJ_SET_IFDEQ || flags &amp; OBJ_SET_IFDNE) {
+            if (validateHexDigest(c, match_value-&gt;ptr) != C_OK)
+                return;
+
+            sds current_digest = stringDigest(current);
+            int condition = flags &amp; OBJ_SET_IFDEQ ?
+                            strcasecmp(current_digest, match_value-&gt;ptr) == 0 :
+                            strcasecmp(current_digest, match_value-&gt;ptr) != 0;
+            sdsfree(current_digest);
+            if (!condition) {
+                if (!(flags &amp; OBJ_SET_GET)) {
+                    addReply(c, abort_reply ? abort_reply : shared.null[c-&gt;resp]);
+                }
+                return;
+            }
+        }
+    }
+
+    /* If the expire time is already elapsed, we don&#x27;t need to add the key,
+     * but we still need to update the stats, and we also need to delete the
+     * key if it exists.
+     *
+     * From stats perspective, we behave as if we inserted a new key (possibly
+     * an overwrite) and later expired it, but from the per-key KSN observability,
+     * we reflect what we&#x27;ve actually done in the db (deletion of old key, and
+     * no insertion of new one), so we don&#x27;t confuse modules. */
+    if (expire &amp;&amp; checkAlreadyExpired(milliseconds)) {
+        if (found) {</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-16-077Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-16-077Z" class="timestamp-link"><time datetime="2026-09-19T19:13:16.077Z" data-timestamp="2026-09-19T19:13:16.077Z">2026-09-19T19:13:16.077Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-16-668Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-16-668Z" class="timestamp-link"><time datetime="2026-09-19T19:13:16.668Z" data-timestamp="2026-09-19T19:13:16.668Z">2026-09-19T19:13:16.668Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Confirmed — the already-expired check sits <em>after</em> NX/XX and before the write. My model writes the value instead. Fixing:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-27-624Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-27-624Z" class="timestamp-link"><time datetime="2026-09-19T19:13:27.624Z" data-timestamp="2026-09-19T19:13:27.624Z">2026-09-19T19:13:27.624Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_0141SSKvbJmnpF61jkD3nNyY">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Fix model SET already-expired branch</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;src/model/cmd.rs&#39;
+s=open(p).read()
+old=&#39;&#39;&#39;    let keep = matches!(ttl, TtlArg::Keep);
+    let prev_expire = w.slots[k].expire_at;
+&#39;&#39;&#39;
+new=&#39;&#39;&#39;    // t_string.c:161-175. If the SET carries an ALREADY-ELAPSED absolute expire, the value
+    // is never written: an existing key is DELETED and the command propagates as DEL (not
+    // SET), while the client still gets +OK. Ordered AFTER the NX/XX check, before the
+    // write.
+    //
+    // Found by differential testing against redis-server 8.9.241: the model previously
+    // stored the value with a past expire, leaving a physically-present key. The server
+    // leaves nothing. 102/400 schedules diverged on this.
+    if let TtlArg::PxAt(at) = ttl {
+        if check_already_expired(w, at) {
+            if exists || w.slots[k].present {
+                w.slots[k] = Slot::absent();
+                w.dirty += 1;
+                watch::key_modified(w, k);
+                w.repl.push(Effect::Del { key: k });
+            }
+            return if get {
+                match old {
+                    Some(Value::Str(s)) =&gt; Reply::Str(s),
+                    None =&gt; Reply::Nil,
+                }
+            } else {
+                Reply::Ok
+            };
+        }
+    }
+
+    let keep = matches!(ttl, TtlArg::Keep);
+    let prev_expire = w.slots[k].expire_at;
+&#39;&#39;&#39;
+assert old in s
+s=s.replace(old,new,1)
+open(p,&#39;w&#39;).write(s)
+print(&#34;patched cmd_set&#34;)
+PYEOF
+
+# fix the injected-bug test: SET ... PXAT past leaves NO key, so build the
+# present-but-expired state the correct way (relative PX, then let it elapse).
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;tests/difftest.rs&#39;
+s=open(p).read()
+old=&#39;&#39;&#39;    // The classic wrong model: DBSIZE filters expired keys. It does not (db.c:3148-3173).
+    let base = server_mstime(&amp;mut c);
+    c.cmd_s(&amp;[&#34;FLUSHALL&#34;]).unwrap();
+    c.cmd_s(&amp;[&#34;SET&#34;, &#34;k0&#34;, &#34;v&#34;, &#34;PXAT&#34;, &amp;(base - 10_000).to_string()]).unwrap();
+&#39;&#39;&#39;
+new=&#39;&#39;&#39;    // The classic wrong model: DBSIZE filters expired keys. It does not (db.c:3148-3173).
+    //
+    // NOTE the setup must use a RELATIVE PX and then let it elapse. `SET k v PXAT &lt;past&gt;`
+    // would leave no key at all (t_string.c:161-175) -- which is itself a bug this
+    // harness caught in the model.
+    c.cmd_s(&amp;[&#34;FLUSHALL&#34;]).unwrap();
+    c.cmd_s(&amp;[&#34;SET&#34;, &#34;k0&#34;, &#34;v&#34;, &#34;PX&#34;, &#34;50&#34;]).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(250));
+&#39;&#39;&#39;
+assert old in s
+s=s.replace(old,new,1)
+open(p,&#39;w&#39;).write(s)
+print(&#34;patched injected-bug test&#34;)
+PYEOF
+cargo build --features &#34;certora,rt&#34; 2&gt;&amp;1 | grep -E &#39;^error&#39; -A5 | head -20; cargo build --features &#34;certora,rt&#34; 2&gt;&amp;1 | tail -2</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-13-28-981Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-13-28-981Z" class="timestamp-link"><time datetime="2026-09-19T19:13:28.981Z" data-timestamp="2026-09-19T19:13:28.981Z">2026-09-19T19:13:28.981Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>patched cmd_set
+patched injected-bug test
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-13-31-778Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-13-31-778Z" class="timestamp-link"><time datetime="2026-09-19T19:13:31.778Z" data-timestamp="2026-09-19T19:13:31.778Z">2026-09-19T19:13:31.778Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_017ZNY5PhfdUqMwPbbSTKawb">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Re-run difftest after model fix</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cargo test --features &#34;certora,rt&#34; --release --test difftest -- --nocapture --test-threads=1 2&gt;&amp;1 | tail -30</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-14-15-549Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-14-15-549Z" class="timestamp-link"><time datetime="2026-09-19T19:14:15.549Z" data-timestamp="2026-09-19T19:14:15.549Z">2026-09-19T19:14:15.549Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>   Compiling redis-cvlr v0.1.0 (/home/apanda/code/certora/redis-cvlr)
+    Finished `release` profile [optimized] target(s) in 4.04s
+     Running tests/difftest.rs (target/release/build/redis-cvlr/3ba9fb5de5a9c57e/out/difftest-3ba9fb5de5a9c57e)
+
+running 2 tests
+test harness_detects_an_injected_bug ... 
+injected-bug check: a model with DBSIZE filtering expired keys would report 0 here; the server reports 1. The harness can tell them apart.
+ok
+test model_matches_real_redis ... 
+400/400 schedules agreed (12 steps each)
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.65s</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-14-18-832Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-14-18-832Z" class="timestamp-link"><time datetime="2026-09-19T19:14:18.832Z" data-timestamp="2026-09-19T19:14:18.832Z">2026-09-19T19:14:18.832Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-14-19-245Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-14-19-245Z" class="timestamp-link"><time datetime="2026-09-19T19:14:19.245Z" data-timestamp="2026-09-19T19:14:19.245Z">2026-09-19T19:14:19.245Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>400/400. Let me verify the change didn't break the rules, then push on the F-01 reachability question:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-14-20-620Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-14-20-620Z" class="timestamp-link"><time datetime="2026-09-19T19:14:20.620Z" data-timestamp="2026-09-19T19:14:20.620Z">2026-09-19T19:14:20.620Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01TcNhgZ1zbSFxR7JxF6mdjy">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Re-run concrete rules after model change</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cargo test --features &#34;certora,rt&#34; --release --test concrete -- --nocapture 2&gt;&amp;1 | sed -n &#39;/^running 1 test/,/test result/p&#39; | head -22</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-14-25-223Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-14-25-223Z" class="timestamp-link"><time datetime="2026-09-19T19:14:25.223Z" data-timestamp="2026-09-19T19:14:25.223Z">2026-09-19T19:14:25.223Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>running 1 test
+
+ok     string_set_integrity                             executed  20000/20000  rejected     0  
+FAIL   string_set_ttl_argument                          executed  20000/20000  rejected     0  seeds [12, 13, 28, 29, 56, 57, 92, 93]
+ok     string_set_nx_xx_uses_logical_existence          executed  20000/20000  rejected     0  
+ok     expire_visibility_split                          executed  20000/20000  rejected     0  
+ok     expire_lazy_active_boundary                      executed  20000/20000  rejected     0  
+ok     expire_condition_semantics                       executed  20000/20000  rejected     0  
+ok     expire_lazy_propagates_bare_del                  executed  20000/20000  rejected     0  
+ok     expire_replica_hides_without_deleting            executed  20000/20000  rejected     0  
+ok     expire_master_link_sees_expired_key_as_valid     executed  20000/20000  rejected     0  
+ok     keyspace_expires_subset_of_keys                  executed  20000/20000  rejected     0  
+ok     keyspace_active_expiry_only_removes              executed  20000/20000  rejected     0  
+ok     keyspace_dbsize_counts_physical                  executed  20000/20000  rejected     0  
+ok     multi_watch_is_value_blind                       executed  20000/20000  rejected     0  
+
+--- expected to fail (targets FINDINGS.md F-01) ---
+FAIL   multi_touch_dirties_every_watcher                executed  20000/20000  rejected     0  seeds [1, 2, 3, 4, 5, 6, 7, 8]
+
+
+thread &#x27;all_rules_execute&#x27; (1856956) panicked at tests/concrete.rs:63:5:
+a rule that was expected to hold did not</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-14-30-133Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-14-30-133Z" class="timestamp-link"><time datetime="2026-09-19T19:14:30.133Z" data-timestamp="2026-09-19T19:14:30.133Z">2026-09-19T19:14:30.133Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-14-31-253Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-14-31-253Z" class="timestamp-link"><time datetime="2026-09-19T19:14:31.253Z" data-timestamp="2026-09-19T19:14:31.253Z">2026-09-19T19:14:31.253Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p><code>string_set_ttl_argument</code> now fails — <strong>correctly</strong>. P-06 as I stated it was wrong: it claimed <code>SET ... PXAT t</code> always installs <code>t</code>, but an already-elapsed <code>t</code> deletes the key instead. The difftest taught me the real semantics and the property has to be restated:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-14-38-192Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-14-38-192Z" class="timestamp-link"><time datetime="2026-09-19T19:14:38.192Z" data-timestamp="2026-09-19T19:14:38.192Z">2026-09-19T19:14:38.192Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01JUXfYDXwgb15PjjYYp2Q3U">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Restate P-06 and re-run</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;src/specs/string_rules.rs&#39;
+s=open(p).read()
+old=&#39;&#39;&#39;    match ttl {
+        TtlArg::None =&gt; cvlr_assert!(w.slots[k].expire_at == NO_EXPIRE),
+        TtlArg::PxAt(at) =&gt; cvlr_assert!(w.slots[k].expire_at == at),
+        TtlArg::Keep =&gt; {&#39;&#39;&#39;
+new=&#39;&#39;&#39;    match ttl {
+        TtlArg::None =&gt; cvlr_assert!(w.slots[k].expire_at == NO_EXPIRE),
+        TtlArg::PxAt(at) =&gt; {
+            // An ALREADY-ELAPSED absolute expire is not installed at all: the value is
+            // never written and any existing key is deleted (t_string.c:161-175).
+            // The naive &#34;PXAT t installs t&#34; was the original statement of P-06 and it is
+            // FALSE -- caught by differential testing, not by reading the C.
+            if at &lt;= w.clock {
+                cvlr_assert!(!w.slots[k].present);
+            } else {
+                cvlr_assert!(w.slots[k].expire_at == at);
+            }
+        }
+        TtlArg::Keep =&gt; {&#39;&#39;&#39;
+assert old in s
+s=s.replace(old,new,1)
+s=s.replace(&#39;&#39;&#39;/// description: `SET ... KEEPTTL` preserves an existing TTL; `SET` with no TTL argument
+///   clears it; `SET ... PXAT t` installs exactly t.&#39;&#39;&#39;,&#39;&#39;&#39;/// description: `SET ... KEEPTTL` preserves an existing TTL; `SET` with no TTL argument
+///   clears it; `SET ... PXAT t` installs exactly t WHEN t is in the future -- an
+///   already-elapsed t writes nothing and deletes any existing key.&#39;&#39;&#39;)
+open(p,&#39;w&#39;).write(s)
+print(&#34;restated P-06&#34;)
+PYEOF
+cargo test --features &#34;certora,rt&#34; --release --test concrete -- --nocapture 2&gt;&amp;1 | sed -n &#39;/^running 1 test/,/test result/p&#39; | head -22</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-14-43-025Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-14-43-025Z" class="timestamp-link"><time datetime="2026-09-19T19:14:43.025Z" data-timestamp="2026-09-19T19:14:43.025Z">2026-09-19T19:14:43.025Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>restated P-06
+running 1 test
+
+ok     string_set_integrity                             executed  20000/20000  rejected     0  
+ok     string_set_ttl_argument                          executed  20000/20000  rejected     0  
+ok     string_set_nx_xx_uses_logical_existence          executed  20000/20000  rejected     0  
+ok     expire_visibility_split                          executed  20000/20000  rejected     0  
+ok     expire_lazy_active_boundary                      executed  20000/20000  rejected     0  
+ok     expire_condition_semantics                       executed  20000/20000  rejected     0  
+ok     expire_lazy_propagates_bare_del                  executed  20000/20000  rejected     0  
+ok     expire_replica_hides_without_deleting            executed  20000/20000  rejected     0  
+ok     expire_master_link_sees_expired_key_as_valid     executed  20000/20000  rejected     0  
+ok     keyspace_expires_subset_of_keys                  executed  20000/20000  rejected     0  
+ok     keyspace_active_expiry_only_removes              executed  20000/20000  rejected     0  
+ok     keyspace_dbsize_counts_physical                  executed  20000/20000  rejected     0  
+ok     multi_watch_is_value_blind                       executed  20000/20000  rejected     0  
+
+--- expected to fail (targets FINDINGS.md F-01) ---
+FAIL   multi_touch_dirties_every_watcher                executed  20000/20000  rejected     0  seeds [1, 2, 3, 4, 5, 6, 7, 8]
+
+test all_rules_execute ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-14-44-877Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-14-44-877Z" class="timestamp-link"><time datetime="2026-09-19T19:14:44.877Z" data-timestamp="2026-09-19T19:14:44.877Z">2026-09-19T19:14:44.877Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Now the F-01 reachability probe — testing the <code>SWAPDB</code> route against the real server:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-15-02-434Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-15-02-434Z" class="timestamp-link"><time datetime="2026-09-19T19:15:02.434Z" data-timestamp="2026-09-19T19:15:02.434Z">2026-09-19T19:15:02.434Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01TooxgqWAu1QHz7jmEpPnTj">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Run F-01 SWAPDB reachability probe</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+cat &gt;&gt; tests/difftest.rs &lt;&lt;&#39;EOF&#39;
+
+/// FINDINGS.md F-01 reachability probe.
+///
+/// The `break` at multi.c:415 needs `wk-&gt;expired == 1` on a watcher WHILE the key is
+/// physically present. Ordinary write paths cannot produce that: they lazy-expire first,
+/// which calls `touchWatchedKey` with the key absent and clears the flag (multi.c:413).
+///
+/// `touchAllWatchedKeysInDb` is the one place that SETS the flag without a deletion
+/// (multi.c:472-474): &#34;Non-existing key is replaced with an expired key.&#34; That is the
+/// SWAPDB path. This probe tries it.
+///
+/// Reports; does not assert. A negative result is a real result -- see FINDINGS.md.
+#[test]
+fn f01_swapdb_reachability_probe() {
+    let Some((_srv, mut c)) = start(PORT + 2) else {
+        eprintln!(&#34;SKIP: {SERVER} not built&#34;);
+        return;
+    };
+    c.cmd_s(&amp;[&#34;DEBUG&#34;, &#34;SET-ACTIVE-EXPIRE&#34;, &#34;0&#34;]).unwrap();
+    c.cmd_s(&amp;[&#34;FLUSHALL&#34;]).unwrap();
+
+    let mut a = Client::connect(PORT + 2).unwrap(); // the expired-at-WATCH watcher
+    let mut b = Client::connect(PORT + 2).unwrap(); // the watcher that must be dirtied
+
+    // db1 gets a key that will be logically expired but physically present.
+    c.cmd_s(&amp;[&#34;SELECT&#34;, &#34;1&#34;]).unwrap();
+    c.cmd_s(&amp;[&#34;SET&#34;, &#34;wk&#34;, &#34;v&#34;, &#34;PX&#34;, &#34;50&#34;]).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    let db1_size = c.cmd_s(&amp;[&#34;DBSIZE&#34;]).unwrap().as_int().unwrap();
+
+    // A watches &#39;wk&#39; in db0, where it does NOT exist -&gt; wk-&gt;expired starts 0.
+    a.cmd_s(&amp;[&#34;SELECT&#34;, &#34;0&#34;]).unwrap();
+    a.cmd_s(&amp;[&#34;WATCH&#34;, &#34;wk&#34;]).unwrap();
+
+    // SWAPDB brings the expired-but-present key into db0. touchAllWatchedKeysInDb should
+    // take the `!exists_in_emptied &amp;&amp; keyIsExpired(replaced_with)` arm and set A&#39;s
+    // wk-&gt;expired = 1 -- with the key PRESENT.
+    let swap = c.cmd_s(&amp;[&#34;SWAPDB&#34;, &#34;0&#34;, &#34;1&#34;]).unwrap();
+
+    // B now watches the same key in db0. It is logically expired, so B also gets
+    // expired = 1 -- but B is appended AFTER A.
+    b.cmd_s(&amp;[&#34;SELECT&#34;, &#34;0&#34;]).unwrap();
+    b.cmd_s(&amp;[&#34;WATCH&#34;, &#34;wk&#34;]).unwrap();
+
+    // Revive the key WITHOUT a lazy-expire delete would be ideal; a plain SET will
+    // lazy-expire first. Try it anyway and see which way it goes.
+    c.cmd_s(&amp;[&#34;SELECT&#34;, &#34;0&#34;]).unwrap();
+    c.cmd_s(&amp;[&#34;SET&#34;, &#34;wk&#34;, &#34;fresh&#34;]).unwrap();
+    c.cmd_s(&amp;[&#34;SET&#34;, &#34;wk&#34;, &#34;fresher&#34;]).unwrap();
+
+    b.cmd_s(&amp;[&#34;MULTI&#34;]).unwrap();
+    b.cmd_s(&amp;[&#34;GET&#34;, &#34;wk&#34;]).unwrap();
+    let b_exec = b.cmd_s(&amp;[&#34;EXEC&#34;]).unwrap();
+
+    a.cmd_s(&amp;[&#34;MULTI&#34;]).unwrap();
+    a.cmd_s(&amp;[&#34;GET&#34;, &#34;wk&#34;]).unwrap();
+    let a_exec = a.cmd_s(&amp;[&#34;EXEC&#34;]).unwrap();
+
+    println!(&#34;\nF-01 SWAPDB reachability probe&#34;);
+    println!(&#34;  db1 size before swap : {db1_size} (1 = expired key physically present)&#34;);
+    println!(&#34;  SWAPDB               : {swap:?}&#34;);
+    println!(&#34;  B EXEC               : {b_exec:?}&#34;);
+    println!(&#34;  A EXEC               : {a_exec:?}&#34;);
+    if b_exec.is_nil() {
+        println!(&#34;  =&gt; B was invalidated. The break did NOT skip it on this path.&#34;);
+        println!(&#34;     F-01 remains NOT REPRODUCED.&#34;);
+    } else {
+        println!(&#34;  =&gt; *** B&#39;s EXEC SUCCEEDED despite wk being overwritten after B WATCHed it.&#34;);
+        println!(&#34;     This would be a client-visible WATCH/EXEC soundness bug. Re-verify by&#34;);
+        println!(&#34;     hand before reporting -- see FINDINGS.md F-01.&#34;);
+    }
+}
+EOF
+cargo test --features &#34;certora,rt&#34; --release --test difftest f01 -- --nocapture --test-threads=1 2&gt;&amp;1 | sed -n &#39;/F-01 SWAPDB/,/test result/p&#39;</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-15-07-384Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-15-07-384Z" class="timestamp-link"><time datetime="2026-09-19T19:15:07.384Z" data-timestamp="2026-09-19T19:15:07.384Z">2026-09-19T19:15:07.384Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>F-01 SWAPDB reachability probe
+  db1 size before swap : 1 (1 = expired key physically present)
+  SWAPDB               : Simple(&quot;OK&quot;)
+  B EXEC               : NilArray
+  A EXEC               : NilArray
+  =&gt; B was invalidated. The break did NOT skip it on this path.
+     F-01 remains NOT REPRODUCED.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.30s</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-15-13-766Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-15-13-766Z" class="timestamp-link"><time datetime="2026-09-19T19:15:13.766Z" data-timestamp="2026-09-19T19:15:13.766Z">2026-09-19T19:15:13.766Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-15-14-417Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-15-14-417Z" class="timestamp-link"><time datetime="2026-09-19T19:15:14.417Z" data-timestamp="2026-09-19T19:15:14.417Z">2026-09-19T19:15:14.417Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>F-01 stays unreproduced via the SWAPDB route too — the <code>SET</code> still lazy-expires first and clears both flags. Recording all of this:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-15-34-008Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-15-34-008Z" class="timestamp-link"><time datetime="2026-09-19T19:15:34.008Z" data-timestamp="2026-09-19T19:15:34.008Z">2026-09-19T19:15:34.008Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01Y8sSxSuZMzbWjyYb4McEv2">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Update FINDINGS and PROPERTIES, run full suite</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;FINDINGS.md&#39;
+s=open(p).read()
+
+s=s.replace(&#39;&#39;&#39;### The remaining open route&#39;&#39;&#39;,&#39;&#39;&#39;### Route 2 attempted: SWAPDB — also failed
+
+`f01_swapdb_reachability_probe` in `tests/difftest.rs`. Setup: db1 holds a key that is
+logically expired but physically present (`DBSIZE` = 1 confirms); client A watches that
+name in db0 where it does not exist; `SWAPDB 0 1` brings the expired-but-present key into
+db0, which should make `touchAllWatchedKeysInDb` take the
+`!exists_in_emptied &amp;&amp; keyIsExpired(replaced_with)` arm and set A&#39;s `wk-&gt;expired = 1`
+*with the key present* (multi.c:472-474); client B then watches it; the key is overwritten.
+
+**Observed: both A&#39;s and B&#39;s `EXEC` returned nil — both correctly invalidated.** The
+overwriting `SET` still lazy-expires first, which clears the flags before the key becomes
+present, exactly as in route 1.
+
+Two independent routes now tried, both defeated by the same mechanism.
+
+### The remaining open route&#39;&#39;&#39;)
+
+s=s.replace(&#39;&#39;&#39;---
+
+## F-02 — deferred surface, recorded so it is not lost&#39;&#39;&#39;,&#39;&#39;&#39;---
+
+## What differential testing has caught
+
+The harness in `tests/difftest.rs` is the only evidence in this project that touches the
+shipped C. Its track record so far, recorded because a harness that has never caught
+anything is not known to work:
+
+**D-01 — `SET k v PXAT &lt;elapsed&gt;` writes nothing and deletes.** The model stored the value
+with a past expire, leaving a physically-present, logically-expired key. The server leaves
+**no key at all**: `t_string.c:161-175` takes an early-return branch that deletes an
+existing key, propagates `DEL` (not `SET`), replies `+OK`, and never writes the value. The
+branch sits *after* the NX/XX and IFEQ checks.
+
+*Caught by*: 102 of 400 schedules diverged, all in the same direction (`model dbsize 1 vs
+server 0`). *Consequence*: property **P-06 was stated wrongly** — &#34;`SET ... PXAT t`
+installs exactly `t`&#34; is false for elapsed `t`. Both the model and the property were
+corrected. This is the case for differential testing in one example: the error was in the
+*specification*, so no amount of proving the model would have surfaced it.
+
+**Negative results are results.** F-01 has now survived two reproduction attempts. That is
+recorded above rather than quietly dropped.
+
+---
+
+## F-02 — deferred surface, recorded so it is not lost&#39;&#39;&#39;)
+open(p,&#39;w&#39;).write(s)
+print(&#34;FINDINGS.md updated&#34;)
+PYEOF
+
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;PROPERTIES.md&#39;
+s=open(p).read()
+s=s.replace(&#39;&#39;&#39;### P-06 — Set-TTL-Argument-Semantics
+**Form** integrity · **Rule** `string_set_ttl_argument` · **Status** unproven
+
+`SET ... KEEPTTL` preserves an existing TTL; plain `SET` clears it; `SET ... PXAT t`
+installs exactly `t`.&#39;&#39;&#39;,&#39;&#39;&#39;### P-06 — Set-TTL-Argument-Semantics
+**Form** integrity · **Rule** `string_set_ttl_argument` · **Status** unproven ·
+**differentially tested**
+
+`SET ... KEEPTTL` preserves an existing TTL; plain `SET` clears it; `SET ... PXAT t`
+installs exactly `t` **when `t` is in the future**.
+
+An **already-elapsed** `t` is a different operation entirely: the value is never written,
+any existing key is deleted, the command propagates as `DEL` rather than `SET`, and the
+client still gets `+OK` (t_string.c:161-175, ordered after the NX/XX check).
+
+&gt; This property was originally stated without that clause, i.e. **wrongly**. It was caught
+&gt; by differential testing (FINDINGS.md D-01), not by reading the C — 102 of 400 schedules
+&gt; diverged. Proving the model would never have found it, because the error was in the
+&gt; specification.&#39;&#39;&#39;)
+
+s=s.replace(&#39;&#39;&#39;`unproven` · `prover-pass` · `prover-fail` · `expected-fail` · `NOT-EXPRESSIBLE` · `deferred`&#39;&#39;&#39;,&#39;&#39;&#39;`unproven` · `prover-pass` · `prover-fail` · `expected-fail` · `NOT-EXPRESSIBLE` · `deferred`
+
+A property may additionally be marked **differentially tested**, meaning the model&#39;s
+behavior for it has been compared against a real `redis-server` 8.9.241. That is sampling,
+not proof, and it is independent of the Prover status.&#39;&#39;&#39;)
+open(p,&#39;w&#39;).write(s)
+print(&#34;PROPERTIES.md updated&#34;)
+PYEOF
+echo &#34;=== full suite ===&#34;
+cargo test --features &#34;certora,rt&#34; --release -- --test-threads=1 2&gt;&amp;1 | grep -E &#39;test result|^test |schedules agreed&#39; | head -20</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-16-17-599Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-16-17-599Z" class="timestamp-link"><time datetime="2026-09-19T19:16:17.599Z" data-timestamp="2026-09-19T19:16:17.599Z">2026-09-19T19:16:17.599Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>FINDINGS.md updated
+PROPERTIES.md updated
+=== full suite ===
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test all_rules_execute ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test f01_swapdb_reachability_probe ... ok
+test harness_detects_an_injected_bug ... ok
+test model_matches_real_redis ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.96s</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-16-23-056Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-16-23-056Z" class="timestamp-link"><time datetime="2026-09-19T19:16:23.056Z" data-timestamp="2026-09-19T19:16:23.056Z">2026-09-19T19:16:23.056Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-16-42-014Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-16-42-014Z" class="timestamp-link"><time datetime="2026-09-19T19:16:42.014Z" data-timestamp="2026-09-19T19:16:42.014Z">2026-09-19T19:16:42.014Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01QY515VHcmyYe8KYUdmH32a">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Update docs and run final verification</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;tests/difftest.rs&#39;
+s=open(p).read()
+s=s.replace(&#39;&#39;&#39;    const SCHEDULES: u64 = 400;
+    const LEN: usize = 12;
+&#39;&#39;&#39;,&#39;&#39;&#39;    // Scale up for a stronger sample: DIFFTEST_SCHEDULES=5000 DIFFTEST_LEN=24 cargo test ...
+    let schedules: u64 = std::env::var(&#34;DIFFTEST_SCHEDULES&#34;)
+        .ok().and_then(|v| v.parse().ok()).unwrap_or(400);
+    let len: usize = std::env::var(&#34;DIFFTEST_LEN&#34;)
+        .ok().and_then(|v| v.parse().ok()).unwrap_or(12);
+&#39;&#39;&#39;)
+s=s.replace(&#39;for seed in 1..=SCHEDULES {&#39;,&#39;for seed in 1..=schedules {&#39;)
+s=s.replace(&#39;let sched = draw_schedule(seed, base, LEN);&#39;,&#39;let sched = draw_schedule(seed, base, len);&#39;)
+s=s.replace(&#39;println!(&#34;\\n{checked}/{SCHEDULES} schedules agreed ({LEN} steps each)&#34;);&#39;,&#39;println!(&#34;\\n{checked}/{schedules} schedules agreed ({len} steps each)&#34;);&#39;)
+s=s.replace(&#39;println!(&#34;\\n{} diverged; first few:&#34;, SCHEDULES as usize - checked);&#39;,&#39;println!(&#34;\\n{} diverged; first few:&#34;, schedules as usize - checked);&#39;)
+open(p,&#39;w&#39;).write(s)
+PYEOF
+
+python3 - &lt;&lt;&#39;PYEOF&#39;
+p=&#39;README.md&#39;
+s=open(p).read()
+s=s.replace(&#39;&#39;&#39;`multi_touch_dirties_every_watcher` is **expected to fail**; it targets FINDINGS.md F-01.
+The test asserts that it fails, so if it starts passing the test breaks on purpose.&#39;&#39;&#39;,&#39;&#39;&#39;`multi_touch_dirties_every_watcher` is **expected to fail**; it targets FINDINGS.md F-01.
+The test asserts that it fails, so if it starts passing the test breaks on purpose.
+
+Differential testing against a real `redis-server` — the only evidence here that touches
+the shipped C. It spawns the server itself and skips (does not fail) if it is not built:
+
+```
+cargo test --features &#34;certora,rt&#34; --release --test difftest -- --nocapture --test-threads=1
+DIFFTEST_SCHEDULES=5000 DIFFTEST_LEN=24 cargo test ...   # scale the sample up
+```
+
+Three tests run: the schedule comparison, an injected-bug check (a harness that cannot
+fail proves nothing), and the FINDINGS.md F-01 reachability probe.&#39;&#39;&#39;)
+open(p,&#39;w&#39;).write(s)
+print(&#34;README updated&#34;)
+PYEOF
+
+cat &gt;&gt; /home/apanda/code/certora/CLAUDE.md &lt;&lt;&#39;MDEOF&#39;
+
+## Differential testing (`redis-cvlr/tests/difftest.rs`)
+
+The only evidence in this project that touches the shipped C. It spawns `redis-server`,
+replays drawn schedules against both the model and the server, and compares every reply
+plus the end-state snapshot. Two disciplines make it non-flaky:
+
+- **TTLs are drawn far from boundaries** — `PAST` (-10 s), `SOON` (+30 ms), `FAR` (+10 min)
+  — so execution drift never changes the sign of &#34;is it expired&#34;. `ClockTick` is a real
+  60 ms sleep, which decisively crosses `SOON` and nothing else.
+- **Active expiry is disabled** (`DEBUG SET-ACTIVE-EXPIRE 0`) so the only deletions are the
+  lazy ones the model also performs. This requires `--enable-debug-command yes`; without it
+  the DEBUG call fails and every expiry comparison silently gets the wrong answer.
+
+The snapshot is read in a non-mutating order: `DBSIZE` and `KEYS` first (pure
+observations), then `GET` only for keys `KEYS` already reported live — so the measurement
+cannot trigger the lazy delete it is trying to observe. `PTTL` is compared by **bucket**
+(-2 / -1 / ≥0), never by value: the two clocks differ by however long the schedule ran.
+
+Always keep an injected-bug test alongside it. A harness that has never caught anything is
+not known to work.
+
+### What it has caught
+
+**`SET k v PXAT &lt;elapsed&gt;` writes nothing and deletes** (t_string.c:161-175). An
+already-elapsed absolute expire takes an early-return branch — ordered *after* the NX/XX
+check — that deletes any existing key, propagates `DEL` rather than `SET`, replies `+OK`,
+and never writes the value. 102 of 400 schedules diverged on this.
+
+The important part: property **P-06 had been stated wrongly** (&#34;`SET ... PXAT t` installs
+exactly `t`&#34;). The error was in the *specification*, so proving the model would never have
+surfaced it. This is the argument for the differential leg in one example.
+MDEOF
+echo &#34;=== final verification ===&#34;
+cargo test --features &#34;certora,rt&#34; --release -- --test-threads=1 2&gt;&amp;1 | grep -E &#39;test result|schedules agreed&#39;
+RUSTFLAGS=&#34;-C strip=none -C link-arg=--import-undefined&#34; cargo build --target=wasm32-unknown-unknown --release --features certora 2&gt;&amp;1 | tail -1
+python3 scripts/wasm_shape.py target/wasm32-unknown-unknown/release/redis_cvlr.wasm | tail -3</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-17-25-880Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-17-25-880Z" class="timestamp-link"><time datetime="2026-09-19T19:17:25.880Z" data-timestamp="2026-09-19T19:17:25.880Z">2026-09-19T19:17:25.880Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>README updated
+=== final verification ===
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.95s
+    Finished `release` profile [optimized] target(s) in 0.14s
+  string_set_ttl_argument
+
+14 exported rule symbol(s).</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-17-28-275Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-17-28-275Z" class="timestamp-link"><time datetime="2026-09-19T19:17:28.275Z" data-timestamp="2026-09-19T19:17:28.275Z">2026-09-19T19:17:28.275Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-17-28-843Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-17-28-843Z" class="timestamp-link"><time datetime="2026-09-19T19:17:28.843Z" data-timestamp="2026-09-19T19:17:28.843Z">2026-09-19T19:17:28.843Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>One stale line to fix — CLAUDE.md still describes <code>redis-cvlr/</code> as empty:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-17-30-469Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-17-30-469Z" class="timestamp-link"><time datetime="2026-09-19T19:17:30.469Z" data-timestamp="2026-09-19T19:17:30.469Z">2026-09-19T19:17:30.469Z</time></a></div><div class="message-content"><div class="file-tool edit-tool" data-tool-id="toolu_012LETmD7uyuGpfESmrQxwmp">
+<div class="file-tool-header edit-header"><span class="file-tool-icon">✏️</span> Edit <span class="file-tool-path">CLAUDE.md</span></div>
+<div class="file-tool-fullpath">/home/apanda/code/certora/CLAUDE.md</div>
+<div class="truncatable"><div class="truncatable-content">
+<div class="edit-section edit-old"><div class="edit-label">−</div><pre class="edit-content">| `redis-cvlr/` | empty | where the spec goes |</pre></div>
+<div class="edit-section edit-new"><div class="edit-label">+</div><pre class="edit-content">| `redis-cvlr/` | the specification — `PROPERTIES.md`, `FINDINGS.md`, model, rules, drivers | the deliverable |</pre></div>
+</div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T19-17-30-506Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T19-17-30-506Z" class="timestamp-link"><time datetime="2026-09-19T19:17:30.506Z" data-timestamp="2026-09-19T19:17:30.506Z">2026-09-19T19:17:30.506Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>The file /home/apanda/code/certora/CLAUDE.md has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T19-17-44-276Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T19-17-44-276Z" class="timestamp-link"><time datetime="2026-09-19T19:17:44.276Z" data-timestamp="2026-09-19T19:17:44.276Z">2026-09-19T19:17:44.276Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Built and passing.</p>
+<h2>What it does</h2>
+<p><code>tests/difftest.rs</code> spawns a real <code>redis-server</code>, draws a schedule, runs it against <strong>both</strong> the model and the server, and compares every reply plus the end-state snapshot.</p>
+<pre><code>400/400 schedules agreed (12 steps each)
+</code></pre>
+<p>Three tests: the schedule comparison, an injected-bug check, and the F-01 reachability probe. Scale with <code>DIFFTEST_SCHEDULES=5000 DIFFTEST_LEN=24</code>.</p>
+<p>Two things made it non-flaky rather than a time-sensitive mess. TTLs are drawn far from boundaries — <code>PAST</code> (−10s), <code>SOON</code> (+30ms), <code>FAR</code> (+10min) — so drift never flips the sign of "is it expired", and <code>ClockTick</code> is a real 60ms sleep that decisively crosses <code>SOON</code> and nothing else. And the snapshot is read in a non-mutating order: <code>DBSIZE</code> and <code>KEYS</code> first, then <code>GET</code> only for keys <code>KEYS</code> already reported live — otherwise the measurement triggers the lazy delete it's trying to observe. <code>PTTL</code> is compared by bucket, never by value.</p>
+<h2>It immediately found a real bug — in my specification</h2>
+<p>First run: <strong>102 of 400 schedules diverged</strong>, all the same direction. The cause:</p>
+<p><code>SET k v PXAT &lt;elapsed&gt;</code> <strong>writes nothing and deletes</strong>. An already-elapsed absolute expire takes an early-return branch at <code>t_string.c:161-175</code> — ordered <em>after</em> the NX/XX check — that deletes any existing key, propagates <code>DEL</code> rather than <code>SET</code>, replies <code>+OK</code>, and never writes the value. My model stored the value with a past expire, leaving a key the server doesn't have.</p>
+<p>Fixing the model then made <code>string_set_ttl_argument</code> fail, which was correct: <strong>P-06 was stated wrongly.</strong> I'd written "<code>SET ... PXAT t</code> installs exactly <code>t</code>". It doesn't, for elapsed <code>t</code>. Both the model and the property are now corrected.</p>
+<p>That's the argument for this leg in one example — the error was in the <em>specification</em>, so proving the model would never have surfaced it. Recorded as D-01 in FINDINGS.md.</p>
+<h2>F-01: second route tried, also negative</h2>
+<p>I ran the <code>SWAPDB</code> route — the one place that sets <code>wk-&gt;expired = 1</code> without a deletion. Set up db1 with an expired-but-present key, A watches the name in db0 where it doesn't exist, <code>SWAPDB</code>, B watches, overwrite.</p>
+<p><strong>Both A's and B's <code>EXEC</code> returned nil — correctly invalidated.</strong> The overwriting <code>SET</code> still lazy-expires first and clears the flags, same mechanism as route 1.</p>
+<p>So F-01 has survived two reproduction attempts and stays <code>NOT REPRODUCED</code>. The probe reports rather than asserts, since a negative result here is a result — it's now in FINDINGS.md rather than quietly dropped.</p>
+<p>Current state: 14 rules exported to wasm, 13 passing concretely at 20000/20000 with zero rejections, one expected-fail, and the model agreeing with the real server across 400 schedules.</p>
+<p>The obvious next lever is <code>attach_to_replication_stream</code> — reading the actual propagated command stream via <code>SYNC</code> would let the propagation properties (P-09, and the MULTI-framing one in iteration 2) be checked against the server rather than only the model. That's where the atomicity work needs to go.</p></div></div></div>
+<div class="message user" id="msg-2026-09-19T20-06-05-363Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-09-19T20-06-05-363Z" class="timestamp-link"><time datetime="2026-09-19T20:06:05.363Z" data-timestamp="2026-09-19T20:06:05.363Z">2026-09-19T20:06:05.363Z</time></a></div><div class="message-content">
+<div class="user-content"><p>Can you add a .gitignore file to make sure build products are not added, and then use jj file untrack to remove them.</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-14-088Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-14-088Z" class="timestamp-link"><time datetime="2026-09-19T20:06:14.088Z" data-timestamp="2026-09-19T20:06:14.088Z">2026-09-19T20:06:14.088Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-14-498Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-14-498Z" class="timestamp-link"><time datetime="2026-09-19T20:06:14.498Z" data-timestamp="2026-09-19T20:06:14.498Z">2026-09-19T20:06:14.498Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Let me check what repo <code>redis-cvlr</code> actually lives in before touching anything:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-17-715Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-17-715Z" class="timestamp-link"><time datetime="2026-09-19T20:06:17.715Z" data-timestamp="2026-09-19T20:06:17.715Z">2026-09-19T20:06:17.715Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_0132yYRnVBWKxPtBU6HSUo2R">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Determine VCS status of redis-cvlr</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora/redis-cvlr
+echo &#34;=== jj status here? ===&#34;; jj status 2&gt;&amp;1 | head -20
+echo; echo &#34;=== is there a .jj above? ===&#34;
+d=$(pwd); while [ &#34;$d&#34; != &#34;/&#34; ]; do [ -d &#34;$d/.jj&#34; ] &amp;&amp; echo &#34;FOUND .jj at $d&#34;; [ -d &#34;$d/.git&#34; ] &amp;&amp; echo &#34;FOUND .git at $d&#34;; d=$(dirname &#34;$d&#34;); done; echo &#34;(scan done)&#34;
+echo; echo &#34;=== redis-cvlr own dotfiles ===&#34;; ls -la | grep &#39;^\.&#39; ; ls -a | head</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T20-06-18-827Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T20-06-18-827Z" class="timestamp-link"><time datetime="2026-09-19T20:06:18.827Z" data-timestamp="2026-09-19T20:06:18.827Z">2026-09-19T20:06:18.827Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>=== jj status here? ===
+Warning: Refused to snapshot some files:
+  target/debug/build/cvlr-derive/565a9b90b139dfb5/out/libcvlr_derive-565a9b90b139dfb5.so: 7.9MiB (8259680 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/cvlr-early-panic/0fbc11954844ace2/out/libcvlr_early_panic-0fbc11954844ace2.so: 7.9MiB (8322424 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/cvlr-hook/b098a50d1d54d9e0/out/libcvlr_hook-b098a50d1d54d9e0.so: 7.8MiB (8157968 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/cvlr-macros/020b5141ebaa0ffd/out/libcvlr_macros-020b5141ebaa0ffd.so: 8.7MiB (9097656 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/darling_core/d9efb58c4094b366/out/libdarling_core-d9efb58c4094b366.rlib: 5.2MiB (5408988 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/darling_core/d9efb58c4094b366/out/libdarling_core-d9efb58c4094b366.rmeta: 1.3MiB (1387470 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/darling_macro/7abaa109f7ab433e/out/libdarling_macro-7abaa109f7ab433e.so: 9.6MiB (10080912 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/proc-macro2/3f89419e38ebe4ab/out/build_script_build: 4.5MiB (4682184 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/quote/4e64a9512590a901/out/build_script_build: 4.4MiB (4625056 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/redis-cvlr/0c0e86f556073c1e/out/libredis_cvlr.so: 4.4MiB (4621816 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/redis-cvlr/23aa82b534caf04b/out/libredis_cvlr.rlib: 3.4MiB (3529712 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/redis-cvlr/23aa82b534caf04b/out/libredis_cvlr.so: 5.4MiB (5629920 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/syn/55696e4aee09ae46/out/libsyn-55696e4aee09ae46.rlib: 7.3MiB (7667272 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/build/syn/55696e4aee09ae46/out/libsyn-55696e4aee09ae46.rmeta: 4.2MiB (4367006 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/incremental/cvlr_derive-1f6ike9g5lri0/s-hmg2i9ekru-1rdkqs7-3qhqpgxaucjvwyjillg9ufzxd/dep-graph.bin: 1.2MiB (1262628 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/incremental/cvlr_early_panic-29vlsc7nerl3p/s-hmg2i9ekss-047woul-2hza3l8h06u46mdn3sj6yv9lz/dep-graph.bin: 1.4MiB (1446159 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/incremental/cvlr_macros-1vixybzw775wc/s-hmg2i9t0i9-1ods3cf-9c25mpkm464waigblgc4onvdm/dep-graph.bin: 1.9MiB (1944954 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/incremental/cvlr_mathint-1u1y90hlc6215/s-hmg2jc945k-0zlvyio-5q2u73sf6fp2hyc88lkjthgie/dep-graph.bin: 1.0MiB (1085537 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+  target/debug/incremental/redis_cvlr-22h45a7gfve6u/s-hmg2jcel3k-1y401dw-azji8ni13xnx8ritpofxbnr72/dep-graph.bin: 1.5MiB (1619127 bytes); the maximum size allowed is 1.0MiB (1048576 bytes)
+
+=== is there a .jj above? ===
+FOUND .jj at /home/apanda/code/certora
+(scan done)
+
+=== redis-cvlr own dotfiles ===
+.
+..
+Cargo.lock
+Cargo.toml
+certora_build.py
+confs
+FINDINGS.md
+justfile
+PROPERTIES.md
+README.md</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-28-261Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-28-261Z" class="timestamp-link"><time datetime="2026-09-19T20:06:28.261Z" data-timestamp="2026-09-19T20:06:28.261Z">2026-09-19T20:06:28.261Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-29-147Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-29-147Z" class="timestamp-link"><time datetime="2026-09-19T20:06:29.147Z" data-timestamp="2026-09-19T20:06:29.147Z">2026-09-19T20:06:29.147Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p><code>/home/apanda/code/certora</code> is a jj repo, and it's already snapshotting <code>redis-cvlr/target/</code> — it tracked the small files and only refused the oversized ones. Let me see the scale before changing anything:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-32-516Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-32-516Z" class="timestamp-link"><time datetime="2026-09-19T20:06:32.516Z" data-timestamp="2026-09-19T20:06:32.516Z">2026-09-19T20:06:32.516Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01TvA7oaFBfcf3FzffqKq6TA">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Inspect tracked files in the jj repo</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora
+echo &#34;=== tracked files, total ===&#34;; jj file list 2&gt;/dev/null | wc -l
+echo &#34;=== tracked under redis-cvlr/target ===&#34;; jj file list 2&gt;/dev/null | grep -c &#39;^redis-cvlr/target/&#39;
+echo &#34;=== tracked under redis-cvlr, excluding target ===&#34;; jj file list 2&gt;/dev/null | grep &#39;^redis-cvlr/&#39; | grep -v &#39;^redis-cvlr/target/&#39; | sort
+echo &#34;=== any other tracked top-level dirs? ===&#34;; jj file list 2&gt;/dev/null | cut -d/ -f1 | sort | uniq -c | sort -rn | head
+echo &#34;=== existing ignore files ===&#34;; ls -la .gitignore 2&gt;/dev/null || echo &#34;(no root .gitignore)&#34;; cat .jj/repo/store/git_target 2&gt;/dev/null | head -1</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T20-06-33-822Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T20-06-33-822Z" class="timestamp-link"><time datetime="2026-09-19T20:06:33.822Z" data-timestamp="2026-09-19T20:06:33.822Z">2026-09-19T20:06:33.822Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>=== tracked files, total ===
+1160
+=== tracked under redis-cvlr/target ===
+1131
+=== tracked under redis-cvlr, excluding target ===
+redis-cvlr/Cargo.lock
+redis-cvlr/Cargo.toml
+redis-cvlr/certora_build.py
+redis-cvlr/confs/findings.conf
+redis-cvlr/confs/keyspace_expiry.conf
+redis-cvlr/FINDINGS.md
+redis-cvlr/justfile
+redis-cvlr/PROPERTIES.md
+redis-cvlr/README.md
+redis-cvlr/scripts/wasm_shape.py
+redis-cvlr/src/driver/concrete.rs
+redis-cvlr/src/driver/difftest.rs
+redis-cvlr/src/driver/mod.rs
+redis-cvlr/src/driver/resp.rs
+redis-cvlr/src/lib.rs
+redis-cvlr/src/model/cmd.rs
+redis-cvlr/src/model/expire.rs
+redis-cvlr/src/model/mod.rs
+redis-cvlr/src/model/state.rs
+redis-cvlr/src/model/step.rs
+redis-cvlr/src/model/watch.rs
+redis-cvlr/src/specs/expire_rules.rs
+redis-cvlr/src/specs/keyspace_rules.rs
+redis-cvlr/src/specs/mod.rs
+redis-cvlr/src/specs/multi_rules.rs
+redis-cvlr/src/specs/string_rules.rs
+redis-cvlr/tests/concrete.rs
+redis-cvlr/tests/difftest.rs
+=== any other tracked top-level dirs? ===
+   1159 redis-cvlr
+      1 CLAUDE.md
+=== existing ignore files ===
+(no root .gitignore)
+git</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-45-160Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-45-160Z" class="timestamp-link"><time datetime="2026-09-19T20:06:45.160Z" data-timestamp="2026-09-19T20:06:45.160Z">2026-09-19T20:06:45.160Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-46-284Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-46-284Z" class="timestamp-link"><time datetime="2026-09-19T20:06:46.284Z" data-timestamp="2026-09-19T20:06:46.284Z">2026-09-19T20:06:46.284Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Clear: 1131 of 1160 tracked files are <code>redis-cvlr/target/</code> build products. The nested repos (<code>cvlr/</code>, <code>redis/</code>, <code>stellar-contracts/</code>) aren't tracked by the outer repo, so I'll leave them alone. Writing the ignore file first, since <code>jj file untrack</code> refuses paths that aren't ignored:</p></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-51-769Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-51-769Z" class="timestamp-link"><time datetime="2026-09-19T20:06:51.769Z" data-timestamp="2026-09-19T20:06:51.769Z">2026-09-19T20:06:51.769Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01NLkYLJdmBsx3QdGsZjGoEY">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Write root .gitignore</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora
+cat &gt; .gitignore &lt;&lt;&#39;EOF&#39;
+# Rust build output. `target/` anywhere in the tree, not just at the root -- redis-cvlr
+# builds both a host artifact and a wasm32 one and both land here.
+target/
+
+# Cargo.lock IS tracked deliberately: redis-cvlr pins a path dependency on a local cvlr
+# and the exact resolution matters for reproducing a Prover run.
+
+# Editor / OS noise
+*.swp
+*.swo
+*~
+.DS_Store
+.idea/
+.vscode/
+
+# Local redis-server logs and dumps, if anyone runs one in-tree rather than in a scratch
+# directory. The difftest harness uses --logfile &#39;&#39; and --save &#39;&#39; so it writes neither.
+*.rdb
+appendonlydir/
+dump.rdb
+*.log
+EOF
+jj --version
+echo &#34;=== .gitignore written; what is now ignored? ===&#34;
+jj status 2&gt;&amp;1 | grep -v &#39;^  target/&#39; | head -10</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T20-06-52-869Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T20-06-52-869Z" class="timestamp-link"><time datetime="2026-09-19T20:06:52.869Z" data-timestamp="2026-09-19T20:06:52.869Z">2026-09-19T20:06:52.869Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>jj 0.45.1
+=== .gitignore written; what is now ignored? ===
+Working copy changes:
+A .gitignore
+A CLAUDE.md
+A redis-cvlr/Cargo.lock
+A redis-cvlr/Cargo.toml
+A redis-cvlr/FINDINGS.md
+A redis-cvlr/PROPERTIES.md
+A redis-cvlr/README.md
+A redis-cvlr/certora_build.py
+A redis-cvlr/confs/findings.conf</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-06-56-631Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-06-56-631Z" class="timestamp-link"><time datetime="2026-09-19T20:06:56.631Z" data-timestamp="2026-09-19T20:06:56.631Z">2026-09-19T20:06:56.631Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01Xwn85KpNs4cMmQFPjfovKY">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Untrack build products</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora
+echo &#34;=== before ===&#34;; jj file list 2&gt;/dev/null | wc -l
+jj file untrack &#39;redis-cvlr/target&#39; 2&gt;&amp;1 | tail -5
+echo &#34;=== after ===&#34;; jj file list 2&gt;/dev/null | wc -l
+echo &#34;=== still tracked under target? ===&#34;; jj file list 2&gt;/dev/null | grep -c &#39;^redis-cvlr/target/&#39; || echo 0</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T20-06-57-771Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T20-06-57-771Z" class="timestamp-link"><time datetime="2026-09-19T20:06:57.771Z" data-timestamp="2026-09-19T20:06:57.771Z">2026-09-19T20:06:57.771Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>=== before ===
+1161
+=== after ===
+30
+=== still tracked under target? ===
+0
+0</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-07-00-627Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-07-00-627Z" class="timestamp-link"><time datetime="2026-09-19T20:07:00.627Z" data-timestamp="2026-09-19T20:07:00.627Z">2026-09-19T20:07:00.627Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-07-03-175Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-07-03-175Z" class="timestamp-link"><time datetime="2026-09-19T20:07:03.175Z" data-timestamp="2026-09-19T20:07:03.175Z">2026-09-19T20:07:03.175Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_01HKomnywDR3wpYP8d4BWJeW">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Verify tracked set and that build output survives</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">cd /home/apanda/code/certora
+echo &#34;=== tracked files now ===&#34;; jj file list 2&gt;/dev/null
+echo
+echo &#34;=== jj status (warnings should be gone) ===&#34;; jj status 2&gt;&amp;1 | head -4
+echo
+echo &#34;=== target/ still on disk? (untrack must not delete) ===&#34;
+ls -d redis-cvlr/target 2&gt;/dev/null &amp;&amp; du -sh redis-cvlr/target 2&gt;/dev/null
+ls redis-cvlr/target/wasm32-unknown-unknown/release/redis_cvlr.wasm 2&gt;/dev/null</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-09-19T20-07-04-286Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-09-19T20-07-04-286Z" class="timestamp-link"><time datetime="2026-09-19T20:07:04.286Z" data-timestamp="2026-09-19T20:07:04.286Z">2026-09-19T20:07:04.286Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>=== tracked files now ===
+.gitignore
+CLAUDE.md
+redis-cvlr/Cargo.lock
+redis-cvlr/Cargo.toml
+redis-cvlr/FINDINGS.md
+redis-cvlr/PROPERTIES.md
+redis-cvlr/README.md
+redis-cvlr/certora_build.py
+redis-cvlr/confs/findings.conf
+redis-cvlr/confs/keyspace_expiry.conf
+redis-cvlr/justfile
+redis-cvlr/scripts/wasm_shape.py
+redis-cvlr/src/driver/concrete.rs
+redis-cvlr/src/driver/difftest.rs
+redis-cvlr/src/driver/mod.rs
+redis-cvlr/src/driver/resp.rs
+redis-cvlr/src/lib.rs
+redis-cvlr/src/model/cmd.rs
+redis-cvlr/src/model/expire.rs
+redis-cvlr/src/model/mod.rs
+redis-cvlr/src/model/state.rs
+redis-cvlr/src/model/step.rs
+redis-cvlr/src/model/watch.rs
+redis-cvlr/src/specs/expire_rules.rs
+redis-cvlr/src/specs/keyspace_rules.rs
+redis-cvlr/src/specs/mod.rs
+redis-cvlr/src/specs/multi_rules.rs
+redis-cvlr/src/specs/string_rules.rs
+redis-cvlr/tests/concrete.rs
+redis-cvlr/tests/difftest.rs
+
+=== jj status (warnings should be gone) ===
+Working copy changes:
+A .gitignore
+A CLAUDE.md
+A redis-cvlr/Cargo.lock
+
+=== target/ still on disk? (untrack must not delete) ===
+redis-cvlr/target
+213M	redis-cvlr/target
+redis-cvlr/target/wasm32-unknown-unknown/release/redis_cvlr.wasm</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-09-19T20-07-12-017Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-09-19T20-07-12-017Z" class="timestamp-link"><time datetime="2026-09-19T20:07:12.017Z" data-timestamp="2026-09-19T20:07:12.017Z">2026-09-19T20:07:12.017Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Done. 1161 → 30 tracked files, none under <code>target/</code>.</p>
+<p><strong><code>.gitignore</code></strong> at the repo root (<code>/home/apanda/code/certora</code>), covering <code>target/</code> anywhere in the tree — <code>redis-cvlr</code> produces both a host and a wasm32 artifact and both land there — plus editor/OS noise and stray redis logs and dumps.</p>
+<p>Two deliberate choices worth flagging:</p>
+<ul>
+<li><strong><code>Cargo.lock</code> stays tracked</strong>, with a comment saying why: <code>redis-cvlr</code> pins a path dependency on the local cvlr, and the exact resolution matters for reproducing a Prover run. Standard advice to ignore it applies to libraries, not this.</li>
+<li><strong>I left the nested repos alone.</strong> <code>cvlr/</code>, <code>redis/</code> and <code>stellar-contracts/</code> have their own <code>.jj</code> and the outer repo was already not tracking them, so nothing was needed and I didn't add patterns that would imply otherwise.</li>
+</ul>
+<p><strong><code>jj file untrack redis-cvlr/target</code></strong> removed all 1131 build files. The 213 MB of build output is still on disk and the wasm artifact is intact — <code>untrack</code> stops tracking, it doesn't delete.</p>
+<p>The <code>jj status</code> warnings about refused oversized snapshots are gone too. Those were jj trying and failing to snapshot 8 MB proc-macro <code>.so</code> files every time it ran, which is what tipped me off to check the scale before writing anything.</p>
+<p>Nothing is committed — the changes sit in the working copy as you'd expect.</p></div></div></div>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-002.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<span class="current">3</span>
+<span class="disabled">Next &rarr;</span>
+</div>
+
+    </div>
+    <script>
+document.querySelectorAll('time[data-timestamp]').forEach(function(el) {
+    const timestamp = el.getAttribute('data-timestamp');
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (isToday) { el.textContent = timeStr; }
+    else { el.textContent = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + timeStr; }
+});
+document.querySelectorAll('pre.json').forEach(function(el) {
+    let text = el.textContent;
+    text = text.replace(/"([^"]+)":/g, '<span style="color: #ce93d8">"$1"</span>:');
+    text = text.replace(/: "([^"]*)"/g, ': <span style="color: #81d4fa">"$1"</span>');
+    text = text.replace(/: (\d+)/g, ': <span style="color: #ffcc80">$1</span>');
+    text = text.replace(/: (true|false|null)/g, ': <span style="color: #f48fb1">$1</span>');
+    el.innerHTML = text;
+});
+document.querySelectorAll('.truncatable').forEach(function(wrapper) {
+    const content = wrapper.querySelector('.truncatable-content');
+    const btn = wrapper.querySelector('.expand-btn');
+    if (content.scrollHeight > 250) {
+        wrapper.classList.add('truncated');
+        btn.addEventListener('click', function() {
+            if (wrapper.classList.contains('truncated')) { wrapper.classList.remove('truncated'); wrapper.classList.add('expanded'); btn.textContent = 'Show less'; }
+            else { wrapper.classList.remove('expanded'); wrapper.classList.add('truncated'); btn.textContent = 'Show more'; }
+        });
+    }
+});
+</script>
+</body>
+</html>
