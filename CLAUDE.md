@@ -396,3 +396,42 @@ and never writes the value. 102 of 400 schedules diverged on this.
 The important part: property **P-06 had been stated wrongly** ("`SET ... PXAT t` installs
 exactly `t`"). The error was in the *specification*, so proving the model would never have
 surfaced it. This is the argument for the differential leg in one example.
+
+## Iteration 2: transactions and the replication-stream oracle
+
+**Propagation is a two-stage buffer, and it has to be.** Effects go to `World::pending` via
+`also_propagate` during a unit; `exit_execution_unit` flushes them to `World::repl` at
+nesting 0, adding `MULTI`/`EXEC` framing iff more than one op was emitted. Pushing straight
+to `repl` would make the framing rule (P-13) unstateable. A consequence: **rules must call
+`step::dispatch`, never `cmd::exec_cmd`** — the latter is an internal that skips the unit
+boundary, so nothing is ever framed or flushed and propagation assertions silently see an
+empty log.
+
+**The replication-stream oracle** (`resp.rs::sync_start` / `drain_propagated`) is Redis's
+own `attach_to_replication_stream`. `SYNC` returns `$<len>\r\n<rdb bytes>` with **no**
+trailing CRLF, so the payload must be skipped by length rather than parsed as a bulk
+string; after that the socket carries propagated commands as ordinary RESP arrays. Filter
+`SELECT`, `PING` and `REPLCONF` — the master emits those on its own schedule. Compare
+command *names and framing*, not full arguments: `DEL` vs `UNLINK` depends on the lazyfree
+config and Redis rewrites relative TTLs to absolute `PXAT`.
+
+**Coverage counters are not optional.** The first transaction-aware difftest run reported
+400/400 agreeing — while `exec_nil` was 0 and `framed_units` was 2. The two properties that
+mattered most were essentially never exercised. A uniform random generator reaches neither:
+a transaction only gets framed if it emits ≥2 *writes*, and a WATCH is only invalidated if
+another client writes *that* key. Both need deliberate bias, and the assertions in
+`tests/difftest.rs` now fail the run if any path count is zero. Treat "N/N agreed" without
+coverage numbers as unverified.
+
+**`UNWATCH` is not `unwatchAllKeys`.** The `UNWATCH` *command* clears `CLIENT_DIRTY_CAS`;
+the `unwatchAllKeys` *helper* does not, because `touchWatchedKey` calls it immediately
+after setting that flag. Model them as two functions or WATCH silently stops invalidating.
+
+**Scale the difftest sample before believing it.** D-02 was invisible at 400 schedules ×
+12 steps and appeared 29 times at 2500 × 28 — it needs a dirtying write, then `UNWATCH`,
+then a whole second transaction. `DIFFTEST_SCHEDULES` / `DIFFTEST_LEN` exist for this.
+
+**A single command can propagate as a framed transaction.** `SET` onto a logically-expired
+key emits the lazy-expire `DEL` plus the `SET`, so the wire shows `MULTI DEL SET EXEC`.
+Confirmed against the real server. Anyone modelling "one command = one propagated command"
+will be wrong.

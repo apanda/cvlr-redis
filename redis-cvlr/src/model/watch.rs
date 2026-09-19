@@ -28,7 +28,31 @@ pub fn watch_key(w: &mut World, c: ClientId, k: KeyId) {
     w.watched.add_tail(k, c);
 }
 
-/// `unwatchAllKeys` (multi.c).
+/// The `UNWATCH` **command** -- `unwatchCommand` (multi.c).
+///
+/// Distinct from `unwatch_all`, and the difference is load-bearing:
+///
+/// ```text
+/// void unwatchCommand(client *c) {
+///     unwatchAllKeys(c);
+///     c->flags &= (~CLIENT_DIRTY_CAS);     <-- only the COMMAND clears the flag
+///     addReply(c,shared.ok);
+/// }
+/// ```
+///
+/// `unwatchAllKeys` is also called from `touchWatchedKey` immediately AFTER setting
+/// CLIENT_DIRTY_CAS on that client (multi.c:419) -- if it cleared the flag there, WATCH
+/// would never invalidate anything. So the clear belongs to the command, not the helper.
+///
+/// Collapsing the two was a real model bug, found by differential testing: a client whose
+/// CAS had been dirtied, then issued UNWATCH, then started a FRESH transaction, had that
+/// transaction wrongly aborted by the model. See FINDINGS.md D-02.
+pub fn unwatch_command(w: &mut World, c: ClientId) {
+    unwatch_all(w, c);
+    w.clients[c].dirty_cas = false;
+}
+
+/// `unwatchAllKeys` (multi.c). Does NOT clear CLIENT_DIRTY_CAS -- see `unwatch_command`.
 pub fn unwatch_all(w: &mut World, c: ClientId) {
     let mut k = 0;
     while k < K {

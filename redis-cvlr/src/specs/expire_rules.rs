@@ -31,7 +31,7 @@ pub fn expire_visibility_split() {
 
     // KEYS: hides it, does not delete it.
     let before = w;
-    let keys = exec_cmd(&mut w, 0, Cmd::Keys);
+    let keys = dispatch(&mut w, 0, Cmd::Keys);
     if let Reply::KeySet(set) = keys {
         cvlr_assert!(!set[k]);
     }
@@ -39,18 +39,18 @@ pub fn expire_visibility_split() {
     cvlr_assert!(w.repl.len == before.repl.len); // and propagated nothing
 
     // DBSIZE: still counts it, because it is physically present.
-    let n_before = match exec_cmd(&mut w, 0, Cmd::DbSize) {
+    let n_before = match dispatch(&mut w, 0, Cmd::DbSize) {
         Reply::Int(n) => n,
         _ => -1,
     };
     cvlr_assert!(w.slots[k].present);
 
     // EXISTS: goes through lookupKeyRead, so it reports absent AND deletes.
-    let e = exec_cmd(&mut w, 0, Cmd::Exists { key: k });
+    let e = dispatch(&mut w, 0, Cmd::Exists { key: k });
     cvlr_assert!(e == Reply::Int(0));
     cvlr_assert!(!w.slots[k].present); // <-- EXISTS DID delete
 
-    let n_after = match exec_cmd(&mut w, 0, Cmd::DbSize) {
+    let n_after = match dispatch(&mut w, 0, Cmd::DbSize) {
         Reply::Int(n) => n,
         _ => -1,
     };
@@ -81,7 +81,7 @@ pub fn expire_lazy_active_boundary() {
     cvlr_assert!(active_cycle_would_expire(&w, k));
 
     // So a read at this instant still returns the value...
-    let g = exec_cmd(&mut w, 0, Cmd::Get { key: k });
+    let g = dispatch(&mut w, 0, Cmd::Get { key: k });
     cvlr_assert!(g != Reply::Nil);
     cvlr_assert!(w.slots[k].present);
 
@@ -110,7 +110,7 @@ pub fn expire_condition_semantics() {
     let at = w.clock + 1 + nondet_range(2000) as Ms; // strictly in the future
     let cond = draw_expire_cond();
 
-    let r = exec_cmd(&mut w, 0, Cmd::Expire { key: k, at, cond });
+    let r = dispatch(&mut w, 0, Cmd::Expire { key: k, at, cond });
     let applied = r == Reply::Int(1);
 
     let expected = match cond {
@@ -135,7 +135,11 @@ pub fn expire_condition_semantics() {
 /// property: P-09. Lazy-Expiry-Propagates-A-Bare-DEL.
 /// description: a read that lazily expires a key propagates exactly one DEL, and that DEL
 ///   is NOT wrapped in MULTI/EXEC.
-/// evidence: db.c:2898 deleteExpiredKeyAndPropagate.
+/// evidence: db.c:2898 deleteExpiredKeyAndPropagate. The DEL is bare not because expiry is
+///   special-cased, but because such a unit emits exactly ONE op, and one-op units are not
+///   framed (server.c:4005). Confirmed against the real server: a READ that lazily expires
+///   propagates `DEL`, while a WRITE onto an expired key emits two ops and propagates
+///   `MULTI DEL SET EXEC` -- see `lazy_expire_framing_matches_real_redis`.
 /// oracle: tests/unit/expire.tcl:809 and :830 pin the bare, unwrapped DEL.
 /// status: unproven
 #[rule]
@@ -148,7 +152,7 @@ pub fn expire_lazy_propagates_bare_del() {
     w.slots[k].expire_at = w.clock - 1 - nondet_range(1000) as Ms;
     let before = w.repl.len;
 
-    exec_cmd(&mut w, 0, Cmd::Get { key: k });
+    dispatch(&mut w, 0, Cmd::Get { key: k });
 
     cvlr_assert!(w.repl.len == before + 1);
     cvlr_assert!(w.repl.get(before) == Some(Effect::Del { key: k }));
@@ -177,7 +181,7 @@ pub fn expire_replica_hides_without_deleting() {
     w.slots[k].expire_at = w.clock - 1 - nondet_range(1000) as Ms;
     let before = w.repl.len;
 
-    let g = exec_cmd(&mut w, 0, Cmd::Get { key: k });
+    let g = dispatch(&mut w, 0, Cmd::Get { key: k });
 
     cvlr_assert!(g == Reply::Nil);       // invisible
     cvlr_assert!(w.slots[k].present);     // but still there
@@ -204,7 +208,7 @@ pub fn expire_master_link_sees_expired_key_as_valid() {
     w.slots[k].value = Value::Str(draw_str());
     w.slots[k].expire_at = w.clock - 1 - nondet_range(1000) as Ms;
 
-    let g = exec_cmd(&mut w, 0, Cmd::Get { key: k });
+    let g = dispatch(&mut w, 0, Cmd::Get { key: k });
     cvlr_assert!(g != Reply::Nil);
     cvlr_assert!(w.slots[k].present);
 }

@@ -34,7 +34,7 @@ pub fn multi_watch_is_value_blind() {
     cvlr_assert!(!w.clients[watcher].dirty_cas);
 
     // Write the SAME value back.
-    exec_cmd(&mut w, writer, Cmd::Set { key: k, val: v, cond: SetCond::Always, ttl: TtlArg::None, get: false });
+    dispatch(&mut w, writer, Cmd::Set { key: k, val: v, cond: SetCond::Always, ttl: TtlArg::None, get: false });
 
     // Value is unchanged...
     cvlr_assert!(w.slots[k].value == Value::Str(v));
@@ -88,4 +88,126 @@ pub fn multi_touch_dirties_every_watcher() {
 
     clog!(k);
     cvlr_assert!(w.clients[b].dirty_cas);
+}
+
+/// property: P-13. Execution-Unit-Framing.
+/// description: a unit's propagated effects are wrapped in MULTI/EXEC iff the unit emitted
+///   more than one op. One op goes bare; zero ops propagate nothing.
+/// evidence: server.c:3993-4045 propagatePendingCommands; server.c:4005
+///   `transaction_target = numops > 1 ? targets : PROPAGATE_NONE`.
+/// oracle: tests/unit/multi.tcl:398 (unframed) vs :412 (framed); confirmed directly against
+///   redis-server by `propagation_framing_matches_real_redis`.
+/// status: unproven (differentially tested)
+#[rule]
+pub fn multi_unit_framed_iff_multi_op() {
+    let mut w = World::nondet_world();
+    w.pin_standalone_master();
+    let c = draw_client();
+    let before = w.repl.len;
+
+    dispatch(&mut w, c, draw_cmd(c));
+
+    let n = w.repl.len - before;
+    clog!(n);
+    if n == 1 {
+        // A single op is never framed.
+        cvlr_assert!(w.repl.get(before) != Some(Effect::Multi));
+        cvlr_assert!(w.repl.get(before) != Some(Effect::Exec));
+    } else if n > 1 {
+        // Framed: MULTI, at least two ops, EXEC.
+        cvlr_assert!(w.repl.get(before) == Some(Effect::Multi));
+        cvlr_assert!(w.repl.get(w.repl.len - 1) == Some(Effect::Exec));
+        cvlr_assert!(n >= 4);
+    }
+}
+
+/// property: P-14. Exec-Outcome-Is-Determined-By-Queue-Time-Errors.
+/// description: EXEC returns -EXECABORT iff a command failed at QUEUE time. A runtime
+///   error inside the block does NOT abort it -- it appears as an element of the reply
+///   array while the other sub-commands still execute.
+/// evidence: multi.c:110-125 (execCommandAbort / CLIENT_DIRTY_EXEC), multi.c:184-238.
+/// status: unproven (differentially tested)
+#[rule]
+pub fn multi_exec_aborts_only_on_queue_time_error() {
+    let mut w = World::nondet_world();
+    w.pin_standalone_master();
+    let c = draw_client();
+
+    dispatch(&mut w, c, Cmd::Multi);
+    dispatch(&mut w, c, draw_cmd(c));
+
+    let bad = draw_bool();
+    if bad {
+        dispatch(&mut w, c, Cmd::BadCommand);
+    }
+
+    let r = dispatch(&mut w, c, Cmd::Exec);
+    clog!(bad);
+    if bad {
+        cvlr_assert!(r == Reply::ExecAborted);
+    } else {
+        cvlr_assert!(r != Reply::ExecAborted);
+    }
+    // Either way the block is closed afterwards.
+    cvlr_assert!(!w.clients[c].in_multi);
+}
+
+/// property: P-15. Watch-Invalidation-Aborts-Exec.
+/// description: if another client writes a WATCHed key between WATCH and EXEC, EXEC
+///   returns the RESP null array and NONE of the queued commands take effect.
+/// evidence: multi.c:387-425 (touchWatchedKey), multi.c:184-238 (CLIENT_DIRTY_CAS).
+/// note: scoped to a key that is LIVE at WATCH time. The already-logically-expired case is
+///   FINDINGS.md F-01 and is deliberately excluded here rather than silently folded in.
+/// status: unproven (differentially tested)
+#[rule]
+pub fn multi_watch_conflict_aborts_exec() {
+    let mut w = World::nondet_world();
+    w.pin_standalone_master();
+
+    let k = draw_key();
+    // Live at WATCH time: no TTL, so `watched_expired` is false and F-01 cannot apply.
+    w.slots[k].present = true;
+    w.slots[k].value = Value::Str(draw_str());
+    w.slots[k].expire_at = NO_EXPIRE;
+
+    let watcher: ClientId = 0;
+    let other: ClientId = 1;
+
+    dispatch(&mut w, watcher, Cmd::Watch { client: watcher, key: k });
+    cvlr_assert!(!w.clients[watcher].watched_expired[k]);
+
+    dispatch(&mut w, watcher, Cmd::Multi);
+    dispatch(&mut w, watcher, Cmd::Get { key: k });
+
+    let before = w.slots[k].value;
+    dispatch(&mut w, other, Cmd::Set {
+        key: k, val: draw_str(), cond: SetCond::Always, ttl: TtlArg::None, get: false,
+    });
+
+    let r = dispatch(&mut w, watcher, Cmd::Exec);
+    let _ = before;
+    cvlr_assert!(r == Reply::ExecNil);
+}
+
+/// property: P-16. Exec-Sees-One-Frozen-Clock.
+/// description: the clock does not advance between the sub-commands of one EXEC, so a TTL
+///   cannot expire mid-transaction.
+/// evidence: server.c:1420-1432 -- `server.cmd_time_snapshot` is frozen at nesting 0.
+/// note: in this model the property holds BY CONSTRUCTION (only `Step::ClockTick` moves the
+///   clock, and it cannot occur inside a unit). The rule is a regression guard: if anyone
+///   later makes a command read a live clock, it fails here.
+/// status: unproven
+#[rule]
+pub fn multi_exec_clock_is_frozen() {
+    let mut w = World::nondet_world();
+    w.pin_standalone_master();
+    let c = draw_client();
+
+    dispatch(&mut w, c, Cmd::Multi);
+    dispatch(&mut w, c, draw_cmd(c));
+    dispatch(&mut w, c, draw_cmd(c));
+
+    let t0 = w.clock;
+    dispatch(&mut w, c, Cmd::Exec);
+    cvlr_assert!(w.clock == t0);
 }

@@ -170,6 +170,30 @@ installs exactly `t`" is false for elapsed `t`. Both the model and the property 
 corrected. This is the case for differential testing in one example: the error was in the
 *specification*, so no amount of proving the model would have surfaced it.
 
+**D-02 — `UNWATCH` clears `CLIENT_DIRTY_CAS`; `unwatchAllKeys` does not.** The model
+collapsed the two into one helper, so a client whose CAS had been dirtied, then issued
+`UNWATCH`, then opened a **fresh** transaction, had that transaction wrongly aborted.
+
+```c
+void unwatchCommand(client *c) {
+    unwatchAllKeys(c);
+    c->flags &= (~CLIENT_DIRTY_CAS);     /* only the COMMAND clears the flag */
+    addReply(c,shared.ok);
+}
+```
+
+The distinction is load-bearing rather than incidental: `unwatchAllKeys` is also called
+from `touchWatchedKey` *immediately after* setting `CLIENT_DIRTY_CAS` on that client
+(multi.c:419). If the helper cleared the flag, WATCH would never invalidate anything.
+
+*Caught by*: 29 of 2500 schedules at 28 steps. **It was invisible at 400 schedules of 12
+steps** — the sequence needs a dirtying write, then `UNWATCH`, then a whole second
+transaction, which a short schedule rarely contains. Scaling the sample is not a formality.
+
+*Also caught in the same run*: `PTTL` inside a `MULTI` block was compared exactly rather
+than by bucket. That one was a harness bug, not a model bug — the model was right and the
+comparison was wrong. Worth distinguishing: a divergence is a question, not a verdict.
+
 **Negative results are results.** F-01 has now survived two reproduction attempts. That is
 recorded above rather than quietly dropped.
 

@@ -17,7 +17,7 @@ pub fn string_set_integrity() {
     let v = draw_str();
     let pre = w;
 
-    let r = exec_cmd(&mut w, 0, Cmd::Set { key: k, val: v, cond: SetCond::Always, ttl: TtlArg::None, get: false });
+    let r = dispatch(&mut w, 0, Cmd::Set { key: k, val: v, cond: SetCond::Always, ttl: TtlArg::None, get: false });
 
     clog!(k);
     cvlr_assert!(r == Reply::Ok);
@@ -54,7 +54,7 @@ pub fn string_set_ttl_argument() {
     let pre_expire = w.slots[k].expire_at;
 
     let ttl = draw_ttl_arg();
-    exec_cmd(&mut w, 0, Cmd::Set { key: k, val: v, cond: SetCond::Always, ttl, get: false });
+    dispatch(&mut w, 0, Cmd::Set { key: k, val: v, cond: SetCond::Always, ttl, get: false });
 
     match ttl {
         TtlArg::None => cvlr_assert!(w.slots[k].expire_at == NO_EXPIRE),
@@ -96,7 +96,7 @@ pub fn string_set_nx_xx_uses_logical_existence() {
 
     let nx = draw_bool();
     let cond = if nx { SetCond::Nx } else { SetCond::Xx };
-    let r = exec_cmd(&mut w, 0, Cmd::Set { key: k, val: v, cond, ttl: TtlArg::None, get: false });
+    let r = dispatch(&mut w, 0, Cmd::Set { key: k, val: v, cond, ttl: TtlArg::None, get: false });
 
     let applied = r == Reply::Ok;
     clog!(logically_present);

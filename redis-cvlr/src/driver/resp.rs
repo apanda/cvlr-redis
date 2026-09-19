@@ -62,6 +62,69 @@ impl Client {
         self.cmd(&owned)
     }
 
+    /// Become a replica: send SYNC and consume the RDB payload, leaving the socket
+    /// positioned at the start of the propagated command stream.
+    ///
+    /// This is Redis's own `attach_to_replication_stream`
+    /// (tests/test_helper.tcl:787-864). The payload arrives as `$<len>\r\n<bytes>` with
+    /// NO trailing CRLF -- unlike a normal bulk string -- so it must be skipped by length
+    /// rather than parsed.
+    pub fn sync_start(&mut self) -> std::io::Result<usize> {
+        self.w.write_all(b"SYNC\r\n")?;
+        self.w.flush()?;
+        let hdr = self.read_line()?;
+        if hdr.first() != Some(&b'$') {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("SYNC did not return a bulk payload: {:?}", String::from_utf8_lossy(&hdr)),
+            ));
+        }
+        let n: usize = String::from_utf8_lossy(&hdr[1..]).trim().parse().unwrap_or(0);
+        let mut buf = vec![0u8; n];
+        self.r.read_exact(&mut buf)?;
+        Ok(n)
+    }
+
+    /// Read propagated commands until the stream goes quiet for `quiet_ms`.
+    ///
+    /// Returns each command as its argument vector. `SELECT` and `PING` are filtered:
+    /// the master emits `SELECT` once at stream start and `PING`s on a timer, and neither
+    /// is an effect of anything the test did.
+    pub fn drain_propagated(&mut self, quiet_ms: u64) -> std::io::Result<Vec<Vec<String>>> {
+        self.r.get_ref().set_read_timeout(Some(std::time::Duration::from_millis(quiet_ms)))?;
+        let mut out = Vec::new();
+        loop {
+            match self.read() {
+                Ok(Resp::Array(items)) => {
+                    let args: Vec<String> = items
+                        .iter()
+                        .map(|r| match r {
+                            Resp::Bulk(b) => String::from_utf8_lossy(b).to_string(),
+                            other => format!("{other:?}"),
+                        })
+                        .collect();
+                    if let Some(first) = args.first() {
+                        let up = first.to_uppercase();
+                        if up == "SELECT" || up == "PING" || up == "REPLCONF" {
+                            continue;
+                        }
+                    }
+                    out.push(args);
+                }
+                Ok(_) => continue,
+                Err(e)
+                    if e.kind() == std::io::ErrorKind::WouldBlock
+                        || e.kind() == std::io::ErrorKind::TimedOut =>
+                {
+                    break
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        self.r.get_ref().set_read_timeout(None)?;
+        Ok(out)
+    }
+
     fn read_line(&mut self) -> std::io::Result<Vec<u8>> {
         let mut out = Vec::new();
         let mut b = [0u8; 1];

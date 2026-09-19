@@ -235,17 +235,72 @@ this rule fails.
 repro was attempted against the real server and **failed**. See F-01 for the full analysis
 and the one open route (`SWAPDB`).
 
-#### Not yet written (iteration 2)
-- Execution-unit MULTI framing: a unit is wrapped in MULTI/EXEC iff it emitted >1 op and
-  the direct command lacks `CMD_TOUCHES_ARBITRARY_KEYS` (server.c:4005-4019 — only `SCAN`
-  and `RANDOMKEY` carry it).
-- `EXEC`'s three distinct outcomes: `-EXECABORT` (queue-time error), null array (WATCH
-  invalidated), normal array whose elements may be errors. Runtime errors do **not** abort.
+#### P-13 — Execution-Unit-Framing ★
+**Form** interleaving · **Rule** `multi_unit_framed_iff_multi_op` · **Status** unproven ·
+**differentially tested**
+
+A unit's propagated effects are wrapped in `MULTI`/`EXEC` **iff the unit emitted more than
+one op**. One op goes bare; zero ops propagate nothing (server.c:4005).
+
+This is the headline atomicity property, and the one where "atomic" stops being an
+adjective and becomes a checkable predicate over a list. Verified directly against the
+replication stream of a real `redis-server` by
+`propagation_framing_matches_real_redis` — all four cases agree, including the subtle one:
+
+| unit | propagated |
+|---|---|
+| a single `SET` | `SET` — **not** framed |
+| a transaction with **one** write | `SET` — still **not** framed |
+| a transaction with **two** writes | `MULTI SET SET EXEC` |
+| a transaction with **no** write | *nothing* |
+
+A consequence worth stating, because it surprises people: **a single client command can
+propagate as a framed transaction.** A `SET` onto a logically-expired key emits two ops —
+the lazy-expire `DEL` and the `SET` — so it goes on the wire as `MULTI DEL SET EXEC`.
+Confirmed on the real server (`lazy_expire_framing_matches_real_redis`). This also sharpens
+P-09: the bare `DEL` that tests/unit/expire.tcl:809 pins is not an expiry special case, it
+is just what a one-op unit looks like.
+
+*Not yet modeled*: the `CMD_TOUCHES_ARBITRARY_KEYS` clause (server.c:4014-4019), which
+suppresses framing for `SCAN` and `RANDOMKEY`. Omitted rather than faked — neither command
+is in the model.
+
+#### P-14 — Exec-Aborts-Only-On-Queue-Time-Errors
+**Form** interleaving · **Rule** `multi_exec_aborts_only_on_queue_time_error` ·
+**Status** unproven · **differentially tested**
+
+`EXEC` returns `-EXECABORT` **iff** a command failed at *queue* time. A runtime error inside
+the block does **not** abort it — it appears as one element of the reply array while the
+other sub-commands still execute (multi.c:110-125). MULTI/EXEC is isolation, not rollback;
+there is no rollback primitive anywhere in Redis.
+
+The three outcomes must never be conflated: `-EXECABORT`, RESP null array (WATCH
+invalidated), and a normal array whose elements may individually be errors.
+
+#### P-15 — Watch-Invalidation-Aborts-Exec
+**Form** interleaving · **Rule** `multi_watch_conflict_aborts_exec` · **Status** unproven ·
+**differentially tested**
+
+If another client writes a WATCHed key between `WATCH` and `EXEC`, `EXEC` returns the RESP
+null array and none of the queued commands take effect.
+
+Scoped to a key that is **live** at WATCH time. The already-logically-expired case is
+FINDINGS.md F-01 and is excluded explicitly rather than quietly folded in.
+
+#### P-16 — Exec-Sees-One-Frozen-Clock
+**Form** interleaving · **Rule** `multi_exec_clock_is_frozen` · **Status** unproven
+
+The clock does not advance between sub-commands of one `EXEC`, so a TTL cannot expire
+mid-transaction (server.c:1420-1432). Holds *by construction* in this model — only
+`Step::ClockTick` moves the clock and it cannot occur inside a unit — so the rule is a
+regression guard rather than a discovery.
+
+#### Not yet written (iteration 3)
 - Blocked-client FIFO among type-matching waiters (blocked.c:620-677), with `block_seq` as
   a ghost ordering witness.
 - Blocking degradation: inside MULTI/script, `BLPOP key 0` returns a null array instead of
   blocking (t_list.c:1364-1368) — one command, two contracts.
-- EXEC's frozen clock: no TTL can expire between sub-commands.
+- The `CMD_TOUCHES_ARBITRARY_KEYS` framing exception.
 
 ### Dimension B — replication / durability · **partly expressible**
 

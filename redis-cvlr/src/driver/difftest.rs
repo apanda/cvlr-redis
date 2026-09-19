@@ -42,7 +42,7 @@ fn val_bytes(s: &Str) -> Vec<u8> {
 /// the model does not have yet (iteration 2).
 #[derive(Clone, Copy)]
 pub enum DiffStep {
-    Cmd(Cmd),
+    Cmd(ClientId, Cmd),
     Tick,
 }
 
@@ -53,6 +53,35 @@ fn draw_ttl_offset() -> Option<i64> {
         1 => Some(PAST),
         2 => Some(SOON),
         _ => Some(FAR),
+    }
+}
+
+/// A command that definitely WRITES the given key. Needed for two reasons the coverage
+/// counters made obvious: a transaction only gets MULTI/EXEC framing if it emits >1 op, and
+/// a WATCH is only invalidated if somebody actually writes the watched key. Left to a
+/// uniform draw, both paths are reached a couple of times in 400 schedules.
+fn draw_write_on(k: KeyId, base: Ms) -> Cmd {
+    match nondet_range(4) {
+        0 => Cmd::Del { key: k },
+        1 => Cmd::Expire { key: k, at: base + FAR, cond: ExpireCond::None },
+        2 => Cmd::Persist { key: k },
+        _ => Cmd::Set {
+            key: k,
+            val: draw_str(),
+            cond: SetCond::Always,
+            ttl: if nondet_range(2) == 0 { TtlArg::None } else { TtlArg::PxAt(base + FAR) },
+            get: false,
+        },
+    }
+}
+
+/// Transaction bodies are write-biased, so units routinely emit more than one op and the
+/// framing rule is actually exercised.
+fn draw_txn_body(base: Ms) -> Cmd {
+    if nondet_range(4) == 0 {
+        draw_diff_cmd(base)
+    } else {
+        draw_write_on(draw_key(), base)
     }
 }
 
@@ -92,17 +121,58 @@ fn draw_diff_cmd(base: Ms) -> Cmd {
 }
 
 /// Materialize a whole schedule up front, so both sides run the identical sequence.
+///
+/// Transactions are emitted as WELL-FORMED BLOCKS (`MULTI`, 1..QCAP commands, `EXEC` or
+/// `DISCARD`) rather than as loose tokens. Random token streams mostly produce
+/// "EXEC without MULTI" and rarely reach the interesting paths; blocks reach them every
+/// time, and staying within QCAP keeps the model's bounded queue faithful. A few malformed
+/// tokens are still emitted on purpose so the error replies are covered too.
+///
+/// Two clients, because WATCH/CAS is untestable with one: the whole point is that
+/// somebody ELSE writes the key.
 pub fn draw_schedule(seed: u64, base: Ms, len: usize) -> Vec<DiffStep> {
     begin(seed);
-    (0..len)
-        .map(|_| {
-            if nondet_range(8) == 0 {
-                DiffStep::Tick
-            } else {
-                DiffStep::Cmd(draw_diff_cmd(base))
+    let mut out = Vec::new();
+    while out.len() < len {
+        let c = (nondet_range(2)) as ClientId;
+        match nondet_range(10) {
+            0 => out.push(DiffStep::Tick),
+            1 | 2 | 3 => {
+                // A transaction block, often preceded by a WATCH, and often with the OTHER
+                // client writing the watched key in between -- which is the only way the
+                // CLIENT_DIRTY_CAS path is ever reached.
+                let other: ClientId = 1 - c;
+                let watched = draw_key();
+                let watching = nondet_range(3) != 0;
+                if watching {
+                    out.push(DiffStep::Cmd(c, Cmd::Watch { client: c, key: watched }));
+                    if nondet_range(2) == 0 {
+                        out.push(DiffStep::Cmd(other, draw_write_on(watched, base)));
+                    }
+                }
+                out.push(DiffStep::Cmd(c, Cmd::Multi));
+                let n = 1 + nondet_range(QCAP as u64) as usize;
+                for _ in 0..n {
+                    out.push(DiffStep::Cmd(c, draw_txn_body(base)));
+                }
+                if nondet_range(8) == 0 {
+                    out.push(DiffStep::Cmd(c, Cmd::BadCommand));
+                }
+                if nondet_range(6) == 0 {
+                    out.push(DiffStep::Cmd(c, Cmd::Discard));
+                } else {
+                    out.push(DiffStep::Cmd(c, Cmd::Exec));
+                }
             }
-        })
-        .collect()
+            6 => out.push(DiffStep::Cmd(c, Cmd::Watch { client: c, key: draw_key() })),
+            4 => out.push(DiffStep::Cmd(c, Cmd::Unwatch { client: c })),
+            // Deliberately malformed, to cover the error replies.
+            5 if nondet_range(4) == 0 => out.push(DiffStep::Cmd(c, Cmd::Exec)),
+            _ => out.push(DiffStep::Cmd(c, draw_diff_cmd(base))),
+        }
+    }
+    out.truncate(len.max(1));
+    out
 }
 
 // ------------------------------------------------------------------ rendering
@@ -150,7 +220,14 @@ fn render(cmd: &Cmd) -> Vec<Vec<u8>> {
         Cmd::Pttl { key } => vec![s("PTTL"), key_name(*key).into_bytes()],
         Cmd::Keys => vec![s("KEYS"), s("*")],
         Cmd::DbSize => vec![s("DBSIZE")],
-        Cmd::Watch { .. } | Cmd::Unwatch { .. } => vec![s("PING")],
+        Cmd::Watch { key, .. } => vec![s("WATCH"), key_name(*key).into_bytes()],
+        Cmd::Unwatch { .. } => vec![s("UNWATCH")],
+        Cmd::Multi => vec![s("MULTI")],
+        Cmd::Exec => vec![s("EXEC")],
+        Cmd::Discard => vec![s("DISCARD")],
+        // A command that is rejected at QUEUE time. Unknown commands are the cleanest way
+        // to trigger CLIENT_DIRTY_EXEC without depending on arity rules.
+        Cmd::BadCommand => vec![s("NOSUCHCOMMAND")],
     }
 }
 
@@ -159,7 +236,7 @@ fn render(cmd: &Cmd) -> Vec<Vec<u8>> {
 /// PTTL is compared by BUCKET, not by value: the two clocks differ by however long the
 /// schedule has been running, so the exact millisecond count will never match. The
 /// meaningful content is -2 (no key) / -1 (no TTL) / >=0 (has TTL).
-fn replies_agree(model: &Reply, server: &Resp, was_pttl: bool) -> bool {
+fn replies_agree(model: &Reply, server: &Resp, was_pttl: bool, pttl_at: &[usize]) -> bool {
     if was_pttl {
         let m = match model {
             Reply::Int(n) => *n,
@@ -192,6 +269,52 @@ fn replies_agree(model: &Reply, server: &Resp, was_pttl: bool) -> bool {
             want == got
         }
         (Reply::Error, Resp::Error(_)) => true,
+        (Reply::Queued, Resp::Simple(t)) => t == "QUEUED",
+        // -EXECABORT is an error reply; distinguish it from an ordinary one by prefix.
+        (Reply::ExecAborted, Resp::Error(e)) => e.starts_with("EXECABORT"),
+        (Reply::ExecNil, r) => r.is_nil(),
+        (Reply::ExecArray(items), Resp::Array(got)) => {
+            if items.len != got.len() {
+                return false;
+            }
+            (0..items.len).all(|i| match items.items[i] {
+                // `pttl_at` marks positions whose queued command was PTTL. Those must be
+                // bucket-compared like a top-level PTTL: the model's clock and the
+                // server's differ by however long the schedule has been running.
+                Some(sub) => sub_agrees(&sub, &got[i], pttl_at.contains(&i)),
+                None => false,
+            })
+        }
+        _ => false,
+    }
+}
+
+fn sub_agrees(model: &SubReply, server: &Resp, is_pttl: bool) -> bool {
+    if is_pttl {
+        let bucket = |n: i64| if n <= -2 { -2 } else if n == -1 { -1 } else { 0 };
+        return match (model, server.as_int()) {
+            (SubReply::Int(m), Some(sv)) => bucket(*m) == bucket(sv),
+            _ => false,
+        };
+    }
+    match (model, server) {
+        (SubReply::Ok, Resp::Simple(t)) => t == "OK",
+        (SubReply::Nil, r) => r.is_nil(),
+        (SubReply::Int(n), Resp::Int(m)) => n == m,
+        (SubReply::Str(s), Resp::Bulk(b)) => val_bytes(s) == *b,
+        (SubReply::Type(VType::Str), Resp::Simple(t)) => t == "string",
+        (SubReply::NoType, Resp::Simple(t)) => t == "none",
+        (SubReply::KeySet(set), Resp::Array(items)) => {
+            let mut want: Vec<String> = (0..K).filter(|i| set[*i]).map(key_name).collect();
+            let mut got: Vec<String> = items
+                .iter()
+                .filter_map(|r| r.as_bulk().map(|b| String::from_utf8_lossy(b).to_string()))
+                .collect();
+            want.sort();
+            got.sort();
+            want == got
+        }
+        (SubReply::Error, Resp::Error(_)) => true,
         _ => false,
     }
 }
@@ -262,15 +385,53 @@ pub struct Divergence {
     pub what: String,
 }
 
+/// Which interesting paths a run actually reached.
+///
+/// Without this, "400/400 agreed" is not evidence: a schedule generator that never reaches
+/// EXEC would agree perfectly and prove nothing about transactions.
+#[derive(Default, Debug)]
+pub struct Coverage {
+    pub queued: u64,
+    pub exec_ok: u64,
+    pub exec_aborted: u64,
+    pub exec_nil: u64,
+    pub errors: u64,
+    pub framed_units: u64,
+    pub bare_units: u64,
+}
+
+impl Coverage {
+    pub fn merge(&mut self, o: &Coverage) {
+        self.queued += o.queued;
+        self.exec_ok += o.exec_ok;
+        self.exec_aborted += o.exec_aborted;
+        self.exec_nil += o.exec_nil;
+        self.errors += o.errors;
+        self.framed_units += o.framed_units;
+        self.bare_units += o.bare_units;
+    }
+}
+
 /// Run one schedule on both sides. Returns the first divergence, if any.
 pub fn run_schedule(
-    c: &mut Client,
+    conns: &mut [Client],
     seed: u64,
     base: Ms,
     sched: &[DiffStep],
+    cov: &mut Coverage,
 ) -> std::io::Result<Option<Divergence>> {
-    c.cmd_s(&["FLUSHALL"])?;
+    // Reset BOTH connections: a transaction or a WATCH left open by the previous schedule
+    // would silently contaminate this one.
+    for c in conns.iter_mut() {
+        let _ = c.cmd_s(&["DISCARD"]);
+        let _ = c.cmd_s(&["UNWATCH"]);
+    }
+    conns[0].cmd_s(&["FLUSHALL"])?;
     let mut w = World::empty(base);
+    // Mirror of each client's queued commands, so an EXEC reply can be compared
+    // position-by-position. The model's ExecResults deliberately does not record which
+    // command produced each element.
+    let mut queued: Vec<Vec<Cmd>> = vec![Vec::new(), Vec::new()];
 
     for (i, st) in sched.iter().enumerate() {
         match st {
@@ -278,18 +439,49 @@ pub fn run_schedule(
                 std::thread::sleep(std::time::Duration::from_millis(TICK_MS as u64));
                 w.clock += TICK_MS;
             }
-            DiffStep::Cmd(cmd) => {
-                let was_pttl = matches!(cmd, Cmd::Pttl { .. });
-                let m = exec_cmd(&mut w, 0, *cmd);
+            DiffStep::Cmd(cli, cmd) => {
+                // PTTL inside a MULTI replies +QUEUED, so only treat it as a PTTL
+                // comparison when it actually executes.
+                let was_pttl = matches!(cmd, Cmd::Pttl { .. }) && !w.clients[*cli].in_multi;
+                let m = dispatch(&mut w, *cli, *cmd);
+
+                let pttl_at: Vec<usize> = if matches!(cmd, Cmd::Exec) {
+                    queued[*cli].iter().enumerate()
+                        .filter(|(_, q)| matches!(q, Cmd::Pttl { .. }))
+                        .map(|(i, _)| i)
+                        .collect()
+                } else {
+                    Vec::new()
+                };
+                match m {
+                    Reply::Queued => queued[*cli].push(*cmd),
+                    Reply::ExecArray(_) | Reply::ExecAborted | Reply::ExecNil => {
+                        queued[*cli].clear()
+                    }
+                    _ => {
+                        if matches!(cmd, Cmd::Discard | Cmd::Multi) {
+                            queued[*cli].clear();
+                        }
+                    }
+                }
+
                 let args = render(cmd);
                 let refs: Vec<&[u8]> = args.iter().map(|v| v.as_slice()).collect();
-                let s = c.cmd(&refs)?;
-                if !replies_agree(&m, &s, was_pttl) {
+                match m {
+                    Reply::Queued => cov.queued += 1,
+                    Reply::ExecArray(_) => cov.exec_ok += 1,
+                    Reply::ExecAborted => cov.exec_aborted += 1,
+                    Reply::ExecNil => cov.exec_nil += 1,
+                    Reply::Error => cov.errors += 1,
+                    _ => {}
+                }
+                let s = conns[*cli].cmd(&refs)?;
+                if !replies_agree(&m, &s, was_pttl, &pttl_at) {
                     return Ok(Some(Divergence {
                         seed,
                         step: i,
                         what: format!(
-                            "reply mismatch for {}: model {:?} vs server {:?}",
+                            "reply mismatch on client {cli} for {}: model {:?} vs server {:?}",
                             String::from_utf8_lossy(
                                 &args.iter().map(|a| String::from_utf8_lossy(a).to_string())
                                     .collect::<Vec<_>>().join(" ").into_bytes()
@@ -303,8 +495,30 @@ pub fn run_schedule(
         }
     }
 
+    // Close any block still open at the end of the schedule, so the snapshot reads state
+    // rather than +QUEUED.
+    for (i, c) in conns.iter_mut().enumerate() {
+        if w.clients[i].in_multi {
+            let _ = c.cmd_s(&["DISCARD"]);
+            w.clients[i].reset_txn();
+        }
+    }
+
+    {
+        let mut i = 0;
+        while i < w.repl.len {
+            match w.repl.get(i) {
+                Some(Effect::Multi) => cov.framed_units += 1,
+                Some(Effect::Exec) => {}
+                Some(_) => cov.bare_units += 1,
+                None => {}
+            }
+            i += 1;
+        }
+    }
+
     let ms = model_snapshot(&w);
-    let ss = server_snapshot(c)?;
+    let ss = server_snapshot(&mut conns[0])?;
     if ms != ss {
         return Ok(Some(Divergence {
             seed,
@@ -313,6 +527,19 @@ pub fn run_schedule(
         }));
     }
     Ok(None)
+}
+
+/// Human-readable form of a schedule step, for diagnosis.
+pub fn describe_step(st: &DiffStep) -> String {
+    match st {
+        DiffStep::Tick => "         TICK".to_string(),
+        DiffStep::Cmd(c, cmd) => {
+            let args = render(cmd);
+            let text: Vec<String> =
+                args.iter().map(|a| String::from_utf8_lossy(a).to_string()).collect();
+            format!("client {c}  {}", text.join(" "))
+        }
+    }
 }
 
 fn describe(r: &Reply) -> String {
@@ -327,5 +554,9 @@ fn describe(r: &Reply) -> String {
         Reply::Type(_) => "string".into(),
         Reply::NoType => "none".into(),
         Reply::Error => "error".into(),
+        Reply::Queued => "QUEUED".into(),
+        Reply::ExecAborted => "EXECABORT".into(),
+        Reply::ExecNil => "exec-nil".into(),
+        Reply::ExecArray(r) => format!("exec[{}]", r.len),
     }
 }

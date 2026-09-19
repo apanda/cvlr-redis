@@ -77,7 +77,7 @@ pub fn keyspace_dbsize_counts_physical() {
     w.pin_standalone_master();
     let pre = w;
 
-    let r = exec_cmd(&mut w, 0, Cmd::DbSize);
+    let r = dispatch(&mut w, 0, Cmd::DbSize);
 
     let mut expected = 0i64;
     let mut i = 0;

@@ -54,6 +54,10 @@ fn all_rules_execute() {
     ok &= run("keyspace_dbsize_counts_physical", keyspace_rules::keyspace_dbsize_counts_physical);
 
     ok &= run("multi_watch_is_value_blind", multi_rules::multi_watch_is_value_blind);
+    ok &= run("multi_unit_framed_iff_multi_op", multi_rules::multi_unit_framed_iff_multi_op);
+    ok &= run("multi_exec_aborts_only_on_queue_time_error", multi_rules::multi_exec_aborts_only_on_queue_time_error);
+    ok &= run("multi_watch_conflict_aborts_exec", multi_rules::multi_watch_conflict_aborts_exec);
+    ok &= run("multi_exec_clock_is_frozen", multi_rules::multi_exec_clock_is_frozen);
 
     println!();
     println!("--- expected to fail (targets FINDINGS.md F-01) ---");

@@ -23,7 +23,8 @@ use cvlr::nondet::nondet;
 pub const K: usize = 3; // distinct keys
 pub const C: usize = 2; // clients
 pub const VLEN: usize = 8; // max string value length
-pub const REPL_CAP: usize = 8; // bounded propagation log
+pub const REPL_CAP: usize = 16; // bounded propagation log
+pub const QCAP: usize = 3; // max commands queued in one MULTI
 
 pub type KeyId = usize;
 pub type ClientId = usize;
@@ -153,8 +154,14 @@ pub struct ClientState {
     /// (multi.c:330) -- the exemption that makes naive CAS models wrong.
     pub watched_expired: [bool; K],
     pub dirty_cas: bool,
+    /// Inside a MULTI block: subsequent commands are QUEUED, not executed.
     pub in_multi: bool,
+    /// A command failed at QUEUE time (unknown command, wrong arity). Only this aborts the
+    /// transaction -- runtime errors do not (multi.c:110-125).
     pub dirty_exec: bool,
+    /// The queued commands, in order.
+    pub queue: [Option<crate::model::cmd::Cmd>; QCAP],
+    pub qlen: usize,
 }
 
 impl ClientState {
@@ -165,7 +172,17 @@ impl ClientState {
             dirty_cas: false,
             in_multi: false,
             dirty_exec: false,
+            queue: [None; QCAP],
+            qlen: 0,
         }
+    }
+
+    pub fn reset_txn(&mut self) {
+        self.in_multi = false;
+        self.dirty_exec = false;
+        self.dirty_cas = false;
+        self.queue = [None; QCAP];
+        self.qlen = 0;
     }
 }
 
@@ -234,7 +251,13 @@ pub struct World {
     /// (db.c:3050-3051).
     pub conf_allows_expire_del: bool,
     pub clients: [ClientState; C],
+    /// Effects propagated so far, as a replica would see them -- INCLUDING the MULTI/EXEC
+    /// framing. This is the model's `assert_replication_stream`.
     pub repl: ReplLog,
+    /// Effects queued by the CURRENT execution unit, not yet framed or flushed.
+    /// Mirrors `server.also_propagate` (server.c). Framing is decided at unit exit, which
+    /// is why this cannot be pushed straight to `repl`.
+    pub pending: ReplLog,
     /// `server.dirty` delta within the current execution unit.
     pub dirty: u64,
     /// `server.execution_nesting` (server.c:1420-1432).
@@ -308,6 +331,7 @@ impl World {
             clients: [ClientState::new(); C],
             watched: WatchTable::new(),
             repl: ReplLog::new(),
+            pending: ReplLog::new(),
             dirty: 0,
             nesting: 0,
         };
@@ -339,6 +363,7 @@ impl World {
             conf_allows_expire_del: true,
             clients: [ClientState::new(); C],
             repl: ReplLog::new(),
+            pending: ReplLog::new(),
             dirty: 0,
             nesting: 0,
         }

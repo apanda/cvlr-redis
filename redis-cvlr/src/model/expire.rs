@@ -130,7 +130,11 @@ pub fn expire_if_needed(w: &mut World, k: KeyId, flags: ExpireFlags) -> KeyStatu
 /// pinned by redis/tests/unit/expire.tcl:809 and :830.
 pub fn delete_expired_key_and_propagate(w: &mut World, k: KeyId) {
     w.slots[k] = Slot::absent();
-    w.repl.push(Effect::Del { key: k });
+    // Goes through the SAME pending buffer as everything else. The reason a lazy-expire
+    // DEL appears BARE on the wire (tests/unit/expire.tcl:809, :830) is not a special
+    // case -- it is simply that such a unit usually emits exactly one op, and single-op
+    // units are not framed. A unit that expires a key AND writes emits two, and IS framed.
+    super::cmd::also_propagate(w, Effect::Del { key: k });
     w.dirty += 1;
     // A physical delete of a watched key dirties the CAS of every watcher -- EXCEPT the
     // watchers that saw it already logically expired at WATCH time (multi.c:397-406).

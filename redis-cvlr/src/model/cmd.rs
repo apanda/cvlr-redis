@@ -51,6 +51,55 @@ pub enum Cmd {
     DbSize,
     Watch { client: ClientId, key: KeyId },
     Unwatch { client: ClientId },
+    Multi,
+    Exec,
+    Discard,
+    /// A command that fails at QUEUE time (unknown command / bad arity). The only thing
+    /// that actually aborts a transaction -- multi.c:110-125.
+    BadCommand,
+}
+
+impl Cmd {
+    /// Commands that are NOT queued inside MULTI but executed immediately
+    /// (multi.c `queueMultiCommand` is skipped for these).
+    pub fn is_txn_control(&self) -> bool {
+        matches!(self, Cmd::Multi | Cmd::Exec | Cmd::Discard | Cmd::Watch { .. } | Cmd::Unwatch { .. })
+    }
+    pub fn is_bad(&self) -> bool {
+        matches!(self, Cmd::BadCommand)
+    }
+}
+
+/// A reply that can appear INSIDE an EXEC array. Mirrors `Reply` minus the transaction
+/// variants -- Rust cannot have `Reply` contain a fixed-size array of itself.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SubReply {
+    Ok,
+    Nil,
+    Int(i64),
+    Str(Str),
+    KeySet([bool; K]),
+    Type(VType),
+    NoType,
+    Error,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct ExecResults {
+    pub items: [Option<SubReply>; QCAP],
+    pub len: usize,
+}
+
+impl ExecResults {
+    pub fn new() -> Self {
+        ExecResults { items: [None; QCAP], len: 0 }
+    }
+    pub fn push(&mut self, r: SubReply) {
+        if self.len < QCAP {
+            self.items[self.len] = Some(r);
+            self.len += 1;
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -65,6 +114,39 @@ pub enum Reply {
     Type(VType),
     NoType,
     Error,
+    /// `+QUEUED` -- the command was accepted into a MULTI block.
+    Queued,
+    /// `-EXECABORT`. Only a QUEUE-time error produces this.
+    ExecAborted,
+    /// RESP null array: the transaction was discarded because a WATCHed key changed.
+    ExecNil,
+    ExecArray(ExecResults),
+}
+
+impl Reply {
+    /// Project to a `SubReply` for placement inside an EXEC array. Transaction replies
+    /// cannot nest, so those map to `Error`.
+    pub fn as_sub(self) -> SubReply {
+        match self {
+            Reply::Ok => SubReply::Ok,
+            Reply::Nil => SubReply::Nil,
+            Reply::Int(n) => SubReply::Int(n),
+            Reply::Str(s) => SubReply::Str(s),
+            Reply::KeySet(k) => SubReply::KeySet(k),
+            Reply::Type(t) => SubReply::Type(t),
+            Reply::NoType => SubReply::NoType,
+            _ => SubReply::Error,
+        }
+    }
+}
+
+// --------------------------------------------------------------- propagation
+
+/// `alsoPropagate` (server.c). Effects accumulate in the CURRENT execution unit and are
+/// framed and flushed only when it closes -- see `step::exit_execution_unit`. Pushing
+/// straight to `repl` would make the MULTI/EXEC framing rule unstateable.
+pub fn also_propagate(w: &mut World, e: Effect) {
+    w.pending.push(e);
 }
 
 // --------------------------------------------------------------- helpers
@@ -128,9 +210,12 @@ pub fn exec_cmd(w: &mut World, c: ClientId, cmd: Cmd) -> Reply {
             Reply::Ok
         }
         Cmd::Unwatch { client } => {
-            watch::unwatch_all(w, client);
+            watch::unwatch_command(w, client);
             Reply::Ok
         }
+        // Transaction control is handled in `step`, which owns the queueing decision.
+        Cmd::Multi | Cmd::Exec | Cmd::Discard => Reply::Error,
+        Cmd::BadCommand => Reply::Error,
     }
     // `c` is unused for now; it becomes load-bearing when MULTI/EXEC lands.
     .tap_client(c)
@@ -183,7 +268,7 @@ fn cmd_set(w: &mut World, k: KeyId, val: Str, cond: SetCond, ttl: TtlArg, get: b
                 w.slots[k] = Slot::absent();
                 w.dirty += 1;
                 watch::key_modified(w, k);
-                w.repl.push(Effect::Del { key: k });
+                also_propagate(w, Effect::Del { key: k });
             }
             return if get {
                 match old {
@@ -219,7 +304,8 @@ fn cmd_set(w: &mut World, k: KeyId, val: Str, cond: SetCond, ttl: TtlArg, get: b
     // Redis rewrites a relative TTL to an ABSOLUTE PXAT before propagating, so replaying
     // the log against a different clock reproduces the same TTL (t_string.c:178-195).
     // That is exactly what makes the replication-refinement property non-vacuous.
-    w.repl.push(Effect::Set { key: k, val, pxat: w.slots[k].expire_at });
+    let pxat = w.slots[k].expire_at;
+    also_propagate(w, Effect::Set { key: k, val, pxat });
 
     if get {
         match old {
@@ -244,7 +330,7 @@ fn cmd_del(w: &mut World, k: KeyId) -> Reply {
     w.slots[k] = Slot::absent();
     w.dirty += 1;
     watch::key_modified(w, k);
-    w.repl.push(Effect::Del { key: k });
+    also_propagate(w, Effect::Del { key: k });
     Reply::Int(1)
 }
 
@@ -292,14 +378,14 @@ fn cmd_expire(w: &mut World, k: KeyId, at: Ms, cond: ExpireCond) -> Reply {
         w.slots[k] = Slot::absent();
         w.dirty += 1;
         watch::key_modified(w, k);
-        w.repl.push(Effect::Del { key: k });
+        also_propagate(w, Effect::Del { key: k });
         return Reply::Int(1);
     }
 
     set_expire(w, k, at);
     w.dirty += 1;
     watch::key_modified(w, k);
-    w.repl.push(Effect::PExpireAt { key: k, at });
+    also_propagate(w, Effect::PExpireAt { key: k, at });
     Reply::Int(1)
 }
 
@@ -313,7 +399,7 @@ fn cmd_persist(w: &mut World, k: KeyId) -> Reply {
     remove_expire(w, k);
     w.dirty += 1;
     watch::key_modified(w, k);
-    w.repl.push(Effect::Persist { key: k });
+    also_propagate(w, Effect::Persist { key: k });
     Reply::Int(1)
 }
 
