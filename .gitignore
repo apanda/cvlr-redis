@@ -1,0 +1,21 @@
+# Rust build output. `target/` anywhere in the tree, not just at the root -- redis-cvlr
+# builds both a host artifact and a wasm32 one and both land here.
+target/
+
+# Cargo.lock IS tracked deliberately: redis-cvlr pins a path dependency on a local cvlr
+# and the exact resolution matters for reproducing a Prover run.
+
+# Editor / OS noise
+*.swp
+*.swo
+*~
+.DS_Store
+.idea/
+.vscode/
+
+# Local redis-server logs and dumps, if anyone runs one in-tree rather than in a scratch
+# directory. The difftest harness uses --logfile '' and --save '' so it writes neither.
+*.rdb
+appendonlydir/
+dump.rdb
+*.log

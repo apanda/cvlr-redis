@@ -1,0 +1,36 @@
+[package]
+name = "redis-cvlr"
+version = "0.1.0"
+edition = "2021"
+description = "CVLR specification of Redis user-visible behavior"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+# Path dependency on the local CVLR 0.6.1. The generated code hard-codes `::cvlr::` paths,
+# so this crate MUST be nameable as exactly `cvlr` -- do not rename it here.
+cvlr = { path = "../cvlr/cvlr", default-features = false }
+
+[features]
+default = []
+# Gates the #[rule] functions, mirroring stellar-contracts' `certora` feature.
+certora = []
+# Concrete mode: our own #[no_mangle] CVT_* implementations so the SAME rule bodies can be
+# executed against a byte stream and differentially tested against a real redis-server.
+#
+# Deliberately does NOT enable `cvlr/rt`. That would define its own CVT_* symbols (duplicate
+# symbol at link time) AND its CVT_assert is `assert!(c)`, which panics through an
+# `extern "C"` boundary and so aborts the process on the first failing rule -- useless for
+# bulk fuzzing. driver::concrete records outcomes instead of unwinding.
+rt = []
+
+[profile.release]
+strip = false          # rules are located by exported symbol name -- never strip
+overflow-checks = false
+panic = "abort"
+lto = true
+opt-level = "z"
+codegen-units = 1

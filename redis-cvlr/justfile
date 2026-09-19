@@ -1,0 +1,21 @@
+# `-C strip=none` is mandatory: the Prover locates rules by exported symbol name.
+# `--import-undefined` is required on a modern nightly -- cvlr's link(wasm_import_module)
+# is gated on target_os="none" but wasm32-unknown-unknown is target_os="unknown", so the
+# CVT_* symbols are plain undefined and rust-lld errors without it. See ../CLAUDE.md.
+export RUSTFLAGS := "-C strip=none -C link-arg=--import-undefined"
+
+target := "target"
+
+build:
+    cargo build --target=wasm32-unknown-unknown --release --features certora
+
+# Verify the artifact has the shape the Prover expects before shipping it anywhere.
+check-wasm: build
+    python3 scripts/wasm_shape.py {{target}}/wasm32-unknown-unknown/release/redis_cvlr.wasm
+
+# Concrete mode: same rule bodies, our own CVT_* impls, no prover needed.
+fuzz:
+    cargo test --features "certora,rt" --release
+
+clean:
+    rm -rf {{target}}
