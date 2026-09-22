@@ -58,12 +58,16 @@ impl ExpireFlags {
 /// deletes it. Hash-field TTL uses a third comparison (`expiredAt < now`,
 /// t_hash.c:2118-2120). A model that picks one comparison disagrees with the others.
 pub fn key_is_expired(w: &World, k: KeyId) -> bool {
-    if w.allow_access_expired {
+    let k = kidx(k); // provably in range: see `World` -- keeps panic_bounds_check out of the wasm
+    if w.loading || w.allow_access_expired {
         return false; // db.c:2948
     }
     let when = w.slots[k].expire_at;
-    if when == NO_EXPIRE {
-        return false; // db.c:2950 -- `when < 0`
+    if when < 0 {
+        // db.c:2950 -- `if (when < 0) return 0;`. ANY negative means "no expire", not just
+        // the -1 sentinel. Testing `== NO_EXPIRE` here made a stray negative timestamp read
+        // as "expired in the distant past", the opposite of Redis.
+        return false;
     }
     w.clock > when // db.c:2954 -- STRICT
 }
@@ -71,8 +75,9 @@ pub fn key_is_expired(w: &World, k: KeyId) -> bool {
 /// The active expire cycle's comparison -- expire.c:40-41. Deliberately distinct from
 /// `key_is_expired`; the one-millisecond disagreement is a real, pinned property.
 pub fn active_cycle_would_expire(w: &World, k: KeyId) -> bool {
+    let k = kidx(k);
     let when = w.slots[k].expire_at;
-    if when == NO_EXPIRE {
+    if when < 0 {
         return false;
     }
     w.clock >= when
@@ -84,6 +89,7 @@ pub fn active_cycle_would_expire(w: &World, k: KeyId) -> bool {
 /// master. Enumerated here in source order; `asmIsKeyInTrimJob` (db.c:3011-3019) is the
 /// eighth and is modeled as always-false because atomic slot migration is out of scope.
 pub fn expire_if_needed(w: &mut World, k: KeyId, flags: ExpireFlags) -> KeyStatus {
+    let k = kidx(k);
     // (1) db.c:3022 -- explicit caller opt-out, and (2) db.c:3023 -- not expired at all.
     if flags.allow_access_expired || !key_is_expired(w, k) {
         return KeyStatus::Valid;
@@ -129,6 +135,7 @@ pub fn expire_if_needed(w: &mut World, k: KeyId, flags: ExpireFlags) -> KeyStatu
 /// The propagated DEL is a standalone op. It is deliberately NOT wrapped in MULTI/EXEC --
 /// pinned by redis/tests/unit/expire.tcl:809 and :830.
 pub fn delete_expired_key_and_propagate(w: &mut World, k: KeyId) {
+    let k = kidx(k);
     w.slots[k] = Slot::absent();
     w.repl.push(Effect::Del { key: k });
     w.dirty += 1;
@@ -140,6 +147,7 @@ pub fn delete_expired_key_and_propagate(w: &mut World, k: KeyId) {
 /// `lookupKeyRead` -- the read path. Returns the value only if the key survives
 /// `expire_if_needed`.
 pub fn lookup_key_read(w: &mut World, k: KeyId) -> Option<Value> {
+    let k = kidx(k);
     if !w.slots[k].present {
         return None;
     }
@@ -153,6 +161,7 @@ pub fn lookup_key_read(w: &mut World, k: KeyId) -> Option<Value> {
 
 /// `lookupKeyWrite` -- forces deletion so a write never lands on a stale value.
 pub fn lookup_key_write(w: &mut World, k: KeyId) -> Option<Value> {
+    let k = kidx(k);
     if !w.slots[k].present {
         return None;
     }

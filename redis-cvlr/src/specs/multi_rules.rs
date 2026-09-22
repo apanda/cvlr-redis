@@ -7,7 +7,7 @@
 
 use cvlr::prelude::*;
 
-use crate::model::{cmd::*, state::*, step::*, watch::*};
+use crate::model::{cmd::*, state::*, watch::*};
 
 /// property: P-07. WATCH-Is-Value-Blind.
 /// description: a write to a watched key dirties the watcher's CAS even when the write
@@ -65,10 +65,11 @@ pub fn multi_touch_dirties_every_watcher() {
     w.pin_standalone_master();
 
     let k = draw_key();
+
     w.slots[k].present = true;
     w.slots[k].value = Value::Str(draw_str());
     // Logically expired, so the FIRST watcher records wk->expired = 1.
-    w.slots[k].expire_at = w.clock - 1 - nondet_range(1000) as Ms;
+    w.slots[k].expire_at = draw_past(w.clock);
 
     let a: ClientId = 0; // watches while expired  -> watched_expired = true
     let b: ClientId = 1; // watches after it is live -> watched_expired = false

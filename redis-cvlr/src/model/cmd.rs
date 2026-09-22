@@ -71,10 +71,12 @@ pub enum Reply {
 
 /// `setExpire` (db.c). Only ever called on a present key.
 fn set_expire(w: &mut World, k: KeyId, at: Ms) {
+    let k = kidx(k);
     w.slots[k].expire_at = at;
 }
 
 fn remove_expire(w: &mut World, k: KeyId) {
+    let k = kidx(k);
     w.slots[k].expire_at = NO_EXPIRE;
 }
 
@@ -90,6 +92,7 @@ fn check_already_expired(w: &World, at: Ms) -> bool {
 /// atomic unit in Redis, not "one command" in general: a whole EXEC or a whole script is
 /// also one unit. Propagation is flushed by the caller at nesting 0.
 pub fn exec_cmd(w: &mut World, c: ClientId, cmd: Cmd) -> Reply {
+    let c = cidx(c);
     match cmd {
         Cmd::Set { key, val, cond, ttl, get } => cmd_set(w, key, val, cond, ttl, get),
         Cmd::Get { key } => match lookup_key_read(w, key) {
@@ -114,6 +117,7 @@ pub fn exec_cmd(w: &mut World, c: ClientId, cmd: Cmd) -> Reply {
         Cmd::Pttl { key } => match lookup_key_read(w, key) {
             None => Reply::Int(-2), // no such key
             Some(_) => {
+                let key = kidx(key);
                 if w.slots[key].has_ttl() {
                     Reply::Int(w.slots[key].expire_at - w.clock)
                 } else {
@@ -148,6 +152,7 @@ impl Tap for Reply {
 
 /// `setGenericCommand` (t_string.c:161-230).
 fn cmd_set(w: &mut World, k: KeyId, val: Str, cond: SetCond, ttl: TtlArg, get: bool) -> Reply {
+    let k = kidx(k);
     // GET reads the old value BEFORE the write, via the read path.
     let old = if get { lookup_key_read(w, k) } else { None };
 
@@ -238,6 +243,7 @@ fn cmd_set(w: &mut World, k: KeyId, val: Str, cond: SetCond, ttl: TtlArg, get: b
 /// `expireIfNeeded` never returns KEY_DELETED there. Out of scope while the fence pins a
 /// read-only replica, but recorded so nobody "fixes" it later.
 fn cmd_del(w: &mut World, k: KeyId) -> Reply {
+    let k = kidx(k);
     if lookup_key_write(w, k).is_none() {
         return Reply::Int(0);
     }
@@ -250,6 +256,7 @@ fn cmd_del(w: &mut World, k: KeyId) -> Reply {
 
 /// `expireGenericCommand` (expire.c:734-830), with the exact NX/XX/GT/LT semantics.
 fn cmd_expire(w: &mut World, k: KeyId, at: Ms, cond: ExpireCond) -> Reply {
+    let k = kidx(k);
     // expire.c:760 -- lookupKeyWrite. A logically expired key is deleted here and the
     // command then reports 0.
     if lookup_key_write(w, k).is_none() {
@@ -304,6 +311,7 @@ fn cmd_expire(w: &mut World, k: KeyId, at: Ms, cond: ExpireCond) -> Reply {
 }
 
 fn cmd_persist(w: &mut World, k: KeyId) -> Reply {
+    let k = kidx(k);
     if lookup_key_write(w, k).is_none() {
         return Reply::Int(0);
     }

@@ -68,16 +68,19 @@ fn exit_execution_unit(w: &mut World) {
 
 // --------------------------------------------------------------- drawing schedules
 
+/// NOTE the `& 3` rather than `% 3`. A remainder by a non-power-of-two constant on a
+/// symbolic word is the one construct the Prover could not discharge in the milestone-0
+/// bisect -- see `draw_key` in `state.rs`. Every enum draw below masks and folds instead.
 pub fn draw_ttl_arg() -> TtlArg {
-    match nondet_range(3) {
+    match nondet_pow2(4) {
         0 => TtlArg::None,
         1 => TtlArg::Keep,
-        _ => TtlArg::PxAt((cvlr::nondet::nondet::<u64>() % 2_000_000) as Ms),
+        _ => TtlArg::PxAt(draw_ts()),
     }
 }
 
 pub fn draw_set_cond() -> SetCond {
-    match nondet_range(3) {
+    match nondet_pow2(4) {
         0 => SetCond::Always,
         1 => SetCond::Nx,
         _ => SetCond::Xx,
@@ -85,7 +88,7 @@ pub fn draw_set_cond() -> SetCond {
 }
 
 pub fn draw_expire_cond() -> ExpireCond {
-    match nondet_range(5) {
+    match nondet_pow2(8) {
         0 => ExpireCond::None,
         1 => ExpireCond::Nx,
         2 => ExpireCond::Xx,
@@ -94,6 +97,15 @@ pub fn draw_expire_cond() -> ExpireCond {
     }
 }
 
+/// Draw from `[0, n)` where **n MUST be a power of two** -- this is a mask, never a
+/// remainder. See `state::draw_key` for why that matters.
+pub fn nondet_pow2(n: u64) -> u64 {
+    debug_assert!(n.is_power_of_two());
+    cvlr::nondet::nondet::<u64>() & (n - 1)
+}
+
+/// Kept for the differential driver, which draws over ranges that never reach the Prover.
+/// DO NOT use this in anything a `#[rule]` can reach unless `n` is a power of two.
 #[inline(always)]
 pub fn nondet_range(n: u64) -> u64 {
     cvlr::nondet::nondet::<u64>() % n
@@ -102,25 +114,26 @@ pub fn nondet_range(n: u64) -> u64 {
 /// Draw an arbitrary command. DRAWN, never filtered -- see CLAUDE.md.
 pub fn draw_cmd(c: ClientId) -> Cmd {
     let k = draw_key();
-    match nondet_range(10) {
+    match nondet_pow2(16) {
         0 => Cmd::Set { key: k, val: draw_str(), cond: draw_set_cond(), ttl: draw_ttl_arg(), get: draw_bool() },
         1 => Cmd::Get { key: k },
         2 => Cmd::Del { key: k },
         3 => Cmd::Exists { key: k },
-        4 => Cmd::Expire { key: k, at: (nondet_range(2_000_000)) as Ms, cond: draw_expire_cond() },
+        4 => Cmd::Expire { key: k, at: draw_ts(), cond: draw_expire_cond() },
         5 => Cmd::Persist { key: k },
         6 => Cmd::Pttl { key: k },
         7 => Cmd::Keys,
         8 => Cmd::DbSize,
+        // 9..=15 all fold to WATCH: a mask draw is biased, which costs nothing here.
         _ => Cmd::Watch { client: c, key: k },
     }
 }
 
 pub fn draw_step() -> Step {
     let c = draw_client();
-    match nondet_range(6) {
+    match nondet_pow2(8) {
         0 => Step::ActiveExpire,
-        1 => Step::ClockTick(nondet_range(1000) as Ms),
+        1 => Step::ClockTick(nondet_pow2(1024) as Ms),
         _ => Step::Cmd(c, draw_cmd(c)),
     }
 }

@@ -19,3 +19,12 @@ target/
 appendonlydir/
 dump.rdb
 *.log
+
+# Certora CLI upload staging
+.certora_internal/
+
+# Local convenience symlinks to the sibling checkouts (see CLAUDE.md layout).
+# Not part of the repo -- recreate with:
+#   ln -s ../certora-cvlr/cvlr cvlr && ln -s ../redis redis
+/cvlr
+/redis

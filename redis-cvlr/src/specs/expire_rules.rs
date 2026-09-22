@@ -26,7 +26,7 @@ pub fn expire_visibility_split() {
 
     // Constrain to the interesting case by CONSTRUCTION, not by assumption.
     w.slots[k].present = true;
-    w.slots[k].expire_at = w.clock - 1 - (nondet_range(1000) as Ms); // strictly in the past
+    w.slots[k].expire_at = draw_past(w.clock); // strictly in the past, never negative
     cvlr_assert!(key_is_expired(&w, k));
 
     // KEYS: hides it, does not delete it.
@@ -104,10 +104,10 @@ pub fn expire_condition_semantics() {
 
     // Make the key logically live so the command gets past lookupKeyWrite.
     w.slots[k].present = true;
-    w.slots[k].expire_at = if draw_bool() { NO_EXPIRE } else { w.clock + 1 + nondet_range(1000) as Ms };
+    w.slots[k].expire_at = if draw_bool() { NO_EXPIRE } else { draw_future(w.clock) };
 
     let current = w.slots[k].expire_at;
-    let at = w.clock + 1 + nondet_range(2000) as Ms; // strictly in the future
+    let at = draw_future(w.clock); // strictly in the future
     let cond = draw_expire_cond();
 
     let r = exec_cmd(&mut w, 0, Cmd::Expire { key: k, at, cond });
@@ -145,7 +145,7 @@ pub fn expire_lazy_propagates_bare_del() {
     let k = draw_key();
 
     w.slots[k].present = true;
-    w.slots[k].expire_at = w.clock - 1 - nondet_range(1000) as Ms;
+    w.slots[k].expire_at = draw_past(w.clock);
     let before = w.repl.len;
 
     exec_cmd(&mut w, 0, Cmd::Get { key: k });
@@ -174,7 +174,7 @@ pub fn expire_replica_hides_without_deleting() {
 
     let k = draw_key();
     w.slots[k].present = true;
-    w.slots[k].expire_at = w.clock - 1 - nondet_range(1000) as Ms;
+    w.slots[k].expire_at = draw_past(w.clock);
     let before = w.repl.len;
 
     let g = exec_cmd(&mut w, 0, Cmd::Get { key: k });
@@ -202,7 +202,7 @@ pub fn expire_master_link_sees_expired_key_as_valid() {
     let k = draw_key();
     w.slots[k].present = true;
     w.slots[k].value = Value::Str(draw_str());
-    w.slots[k].expire_at = w.clock - 1 - nondet_range(1000) as Ms;
+    w.slots[k].expire_at = draw_past(w.clock);
 
     let g = exec_cmd(&mut w, 0, Cmd::Get { key: k });
     cvlr_assert!(g != Reply::Nil);

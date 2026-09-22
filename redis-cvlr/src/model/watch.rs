@@ -19,6 +19,7 @@ use super::state::*;
 /// `wk->expired` records whether the key was ALREADY logically expired at WATCH time
 /// (multi.c:330). Watchers are appended with `listAddNodeTail` (multi.c:332).
 pub fn watch_key(w: &mut World, c: ClientId, k: KeyId) {
+    let (c, k) = (cidx(c), kidx(k));
     if w.clients[c].watching[k] {
         return; // already watching -- multi.c checks this first
     }
@@ -30,6 +31,7 @@ pub fn watch_key(w: &mut World, c: ClientId, k: KeyId) {
 
 /// `unwatchAllKeys` (multi.c).
 pub fn unwatch_all(w: &mut World, c: ClientId) {
+    let c = cidx(c);
     let mut k = 0;
     while k < K {
         if w.clients[c].watching[k] {
@@ -78,6 +80,7 @@ pub fn unwatch_all(w: &mut World, c: ClientId) {
 /// does, `drivers/difftest` must confirm the same behaviour on the real server before
 /// anyone calls it a bug.
 pub fn touch_watched_key(w: &mut World, k: KeyId, _from_expiry: bool) {
+    let k = kidx(k);
     // `listRewind`/`listNext` advance the iterator BEFORE running the body, so
     // `unwatchAllKeys(c)` removing the current node cannot disturb iteration (a client has
     // at most one entry per key). Snapshotting the order models that exactly.
@@ -86,8 +89,8 @@ pub fn touch_watched_key(w: &mut World, k: KeyId, _from_expiry: bool) {
 
     let mut i = 0;
     while i < n {
-        let c = match order[i] {
-            Some(c) => c,
+        let c = match order[cidx(i)] {
+            Some(c) => cidx(c),
             None => {
                 i += 1;
                 continue;
@@ -116,5 +119,5 @@ pub fn touch_watched_key(w: &mut World, k: KeyId, _from_expiry: bool) {
 /// `keyModified` -- every write path calls this. Kept separate from `touch_watched_key`
 /// so the call sites read like the C.
 pub fn key_modified(w: &mut World, k: KeyId) {
-    touch_watched_key(w, k, false);
+    touch_watched_key(w, kidx(k), false);
 }
