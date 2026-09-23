@@ -32,5 +32,30 @@ strip = false          # rules are located by exported symbol name -- never stri
 overflow-checks = false
 panic = "abort"
 lto = true
-opt-level = "z"
+# WIP WORKAROUND -- not a design decision. Found empirically while getting the first
+# Prover results out; see README.md "This is a workaround, not the intended setup" for
+# what should replace it.
+#
+# THE TWO CONFS WANT DIFFERENT PROFILES. There is one profile here and
+# certora_build.py always runs `just build`, so whichever value is set decides which conf
+# can reproduce its result. Set it before running, per the table:
+#
+#   confs/keyspace_expiry.conf   needs  opt-level = 3
+#   confs/findings.conf  (F-01)  needs  opt-level = "z"
+#
+# Why: -O3 unrolls five small constant-trip loops away (16 -> 11 loops). BMC unrolls each
+# SURVIVING loop `loop_iter` times, so loop COUNT -- not byte size -- drives the
+# basic-block ceiling. At "z" all 12 catalog rules exceed MaxBlockCount (~112k > 100k) and
+# report UNKNOWN before the solver ever runs.
+#
+# But -O3 also destroys the loop-head structure that lets BMC infer an exit condition for
+# `touch_watched_key`, whose bound is a memory load (w.watched.len[k]) and which exits via
+# `return` from inside the body (the multi.c:415 `break`). When BMC cannot infer the exit
+# condition it emits `assert false` (EVMVerifier decompiler/BMC.kt:263), so at -O3 the F-01
+# rule's ProverInternalChecks fails and its verdict is unusable. At "z" it discharges
+# cleanly -- that is the result recorded in FINDINGS.md.
+#
+# Do NOT add #[inline(always)] on top of either: measured 4.1x larger code
+# (104,623 vs 25,498 bytes) and it fails under both profiles.
+opt-level = 3
 codegen-units = 1

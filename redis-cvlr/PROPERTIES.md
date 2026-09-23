@@ -25,8 +25,9 @@ honestly ranked:
 3. **Redis's own oracles**: `assert_replication_stream`
    (tests/test_helper.tcl:787-864), `debug_digest`, `csvdump` (tests/support/util.tcl).
 
-Nothing in this catalog has been through the Prover — there is no Certora tooling on this
-machine. Every entry is `unproven`. A rule that compiles is not a verified rule.
+Most of this catalog has not been through the Prover; see § Prover runs for what has, and
+read that section's caveats before citing any of it. A rule that compiles is not a verified
+rule.
 
 ## Scope fence
 
@@ -55,6 +56,50 @@ bound. "For all keys" means "for all 3 keys". Never report a bounded result as u
 A property may additionally be marked **differentially tested**, meaning the model's
 behavior for it has been compared against a real `redis-server` 8.9.241. That is sampling,
 not proof, and it is independent of the Prover status.
+
+## Prover runs
+
+**Early work. Treat everything here as provisional.** These are the first runs through
+Certora Sunbeam (2026-09-22), made while the toolchain settings were still being worked
+out, and a majority of the verdicts are not yet trusted. The configuration itself changed
+several times during the day; the values recorded below are the ones that produced these
+particular results, not a settled setup. The two confs also need different `Cargo.toml`
+profiles -- see the comment above `opt-level`.
+
+### `confs/keyspace_expiry.conf` -- the catalog
+
+https://prover.certora.com/output/33158/9f0d60c87df34e63bcca1df9e2252cfe?anonymousKey=4a12adf1f3f3895dfed0d5956aa803a6cb3511c7
+
+`opt-level = 3`, `loop_iter 8`, `optimistic_loop false`, `maxBlockCount 200000`, no
+`multi_assert_check`. Zero exceptions, zero unwinding asserts, zero block-count failures.
+
+**Verified**, reproduced in two independent runs: **P-04**, **P-11**, **P-12**.
+
+**Reported Violated, NOT yet believed**: P-01, P-01b, P-07, P-09, P-10, P-10b. Every rule
+that passes is one that does not call `draw_key()`; every rule that fails does. Against
+these verdicts: exhaustive enumeration passes 192/192, the concrete driver passes
+20 000/20 000 per rule, difftest agrees with a real redis-server on 3000/3000 schedules,
+and P-01 verified 8/8 when instantiated at a constant key. A per-assert triage run also
+returned a self-contradictory result for P-09 (`assert_1` proved
+`repl.get(before) == Some(Del)` while `assert_2` claims it may be `Some(Multi)`).
+Unexplained. Do not mark these `prover-fail` until it is.
+
+**No verdict**: P-02, P-06 (UNKNOWN), P-03, P-05 (TIMEOUT).
+
+### `confs/findings.conf` -- P-08 / F-01
+
+https://prover.certora.com/output/33158/726cd72fb6b3474f99dcf549917f83bc?anonymousKey=2e8361d66512bcaf94d35a90df2a56c83bd52faa
+
+`opt-level = "z"`, `loop_iter 8`, `optimistic_loop false`, `multi_assert_check true`.
+
+**P-08: 3/3 asserts Violated with `ProverInternalChecks` Verified** -- the loop-unwinding
+condition was proved, not assumed. That is the `expected-fail` outcome the entry predicts,
+now over every state in the bound rather than the 20 000 sampled by the concrete driver. It
+does not change F-01's status: see `FINDINGS.md`.
+
+Note the asymmetry: P-08 is the only rule here with a Violated verdict worth trusting, and
+it is trustworthy precisely because `multi_assert_check` was on, so `ProverInternalChecks`
+reported as its own row. The six catalog Violateds above have no such row.
 
 ## Form vocabulary
 
