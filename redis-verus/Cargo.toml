@@ -1,0 +1,22 @@
+[package]
+name = "redis-verus"
+version = "0.1.0"
+edition = "2021"
+description = "Verus leg of the Redis specification -- see NOTES.md"
+publish = false
+
+# Path deps on the local Verus checkout. NOTE the crate names: this Verus renamed
+# builtin -> verus_builtin and builtin_macros -> verus_builtin_macros, so the layout in
+# verus/examples/cargo-verus/ is out of date.
+[dependencies]
+vstd = { path = "../../verus/source/vstd" }
+verus_builtin = { path = "../../verus/source/builtin" }
+verus_builtin_macros = { path = "../../verus/source/builtin_macros" }
+
+[package.metadata.verus]
+verify = true
+
+[features]
+# Gates the deliberately-false milestone-0 rule. Off by default so the crate verifies
+# clean; `just verify-negative` turns it on and expects failure.
+negative = []

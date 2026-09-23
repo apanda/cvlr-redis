@@ -1,0 +1,22 @@
+# Where the built Verus binaries live. Override with VERUS_BIN=... if your checkout is
+# somewhere other than a sibling of cvlr-redis.
+verus_bin := env_var_or_default("VERUS_BIN", justfile_directory() / "../../verus/source/target-verus/release")
+
+# Verify the crate. First run also verifies vstd (~24s); incremental is ~1s.
+verify:
+    PATH="{{verus_bin}}:$PATH" cargo verus verify -p redis-verus
+
+# The milestone-0 negative control. MUST fail -- a suite that cannot report failure is
+# silent, not correct.
+verify-negative:
+    #!/usr/bin/env bash
+    out=$(PATH="{{verus_bin}}:$PATH" cargo verus verify -p redis-verus --features negative 2>&1)
+    if echo "$out" | grep -q "postcondition not satisfied"; then
+        echo "OK: smoke_expect_fail failed verification, as designed"
+    else
+        echo "BROKEN: smoke_expect_fail did NOT fail -- the suite is not reporting errors"; exit 1
+    fi
+
+# Inject known bugs one at a time and confirm each breaks verification.
+mutate:
+    ./tools/mutate.sh

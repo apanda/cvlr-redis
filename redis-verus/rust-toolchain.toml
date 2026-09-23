@@ -1,0 +1,4 @@
+# Must match verus/rust-toolchain.toml. Verus is built against exactly this rustc.
+[toolchain]
+channel = "1.97.1"
+components = ["rustc", "rust-std", "cargo", "rustfmt", "rustc-dev", "llvm-tools"]
