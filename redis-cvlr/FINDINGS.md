@@ -170,6 +170,19 @@ installs exactly `t`" is false for elapsed `t`. Both the model and the property 
 corrected. This is the case for differential testing in one example: the error was in the
 *specification*, so no amount of proving the model would have surfaced it.
 
+### Prover result (2026-09-22)
+
+`multi_touch_dirties_every_watcher`: 3/3 asserts Violated. Designed outcome. See run link:
+https://prover.certora.com/output/33158/726cd72fb6b3474f99dcf549917f83bc?anonymousKey=2e8361d66512bcaf94d35a90df2a56c83bd52faa
+
+Repro: `confs/findings.conf` (loop_iter 8, optimistic_loop false), certora-cli 8.19.2
+`certoraSorobanProver`, run from `confs/`. **Needs `opt-level = "z"`** -- at `opt-level = 3`
+this rule's `ProverInternalChecks` fails and the verdict is unusable.
+
+Status unchanged: this proves the consequent over the model, now for every state in the
+bound rather than the 20 000 sampled by the concrete driver. Whether the antecedent is
+reachable on the real server is still the open question.
+
 **Negative results are results.** F-01 has now survived two reproduction attempts. That is
 recorded above rather than quietly dropped.
 
